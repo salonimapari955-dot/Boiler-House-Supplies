@@ -43,7 +43,7 @@ function CountUp({ target, prefix = "", suffix = "", decimals = 0 }) {
     let observer;
     const animate = () => {
       const startTime = performance.now();
-      const duration = 2800;
+      const duration = 1200;
 
       const update = (now) => {
         const progress = Math.min((now - startTime) / duration, 1);
