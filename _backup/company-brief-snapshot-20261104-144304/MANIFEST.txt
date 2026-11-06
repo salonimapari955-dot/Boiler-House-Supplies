@@ -1,0 +1,14 @@
+﻿Snapshot created: 2026-11-04 14:43:10
+Project root: C:\Users\Saloni Ushant Mapari\Desktop\Boiler House
+Snapshot folder: C:\Users\Saloni Ushant Mapari\Desktop\Boiler House\_backup\company-brief-snapshot-20261104-144304
+
+Live CompanyBrief.jsx SHA256: EBDFA39D6BBFDEB982876D2AF8F6F033D298561836A8D1B81EC2593296B31944
+Current copy SHA256: EBDFA39D6BBFDEB982876D2AF8F6F033D298561836A8D1B81EC2593296B31944
+Before-last-image-change copy SHA256: 3D02A432C57A58113BF66F36773287F82CD0EFDE5BC9B27255B76B448E551FAA
+Trade/export image SHA256: 9F909AE8927BD4EF2BCB3770822828EF43E94D0DA12CA582210297B7CFF26D13
+Original vendor-base image SHA256: AA81CD784ED05876823CD830E0F2B24B6A00DA931B8C5B2CEEC80C139F32C219
+Project snapshot zip SHA256: B8BF48985055450892D6913D0AD7B8669BAAC24BD2DEE92C4FBBAFBD295B59F2
+Project snapshot zip bytes: 28782646
+
+Excluded from full snapshot: node_modules, dist, .git
+Included: all remaining project files (frontend, backend, public, _backup, configs, etc.)

@@ -1,0 +1,813 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
+
+  --color-ink: #0a1826;
+  --color-ink-soft: #10263a;
+  --color-paper: #f7f4ee;
+  --color-paper-deep: #ede8de;
+  --color-brand: #c2410c;
+  --color-brand-bright: #fb923c;
+  --color-steel: #5b6b7c;
+  --color-line: #ded8cc;
+  --color-sage: #6f7f62;
+  --color-sage-soft: #eef1e7;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-brand);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border: 1px solid transparent;
+    background-color: var(--color-brand);
+    padding: 0.95rem 1.65rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    transition:
+      background-color 220ms ease,
+      box-shadow 220ms ease,
+      transform 220ms ease;
+  }
+
+  .btn-primary:hover {
+    background-color: #9a3412;
+    box-shadow: 0 16px 34px -14px rgba(194, 65, 12, 0.7);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary svg {
+    transition: transform 220ms ease;
+  }
+
+  .btn-primary:hover svg {
+    transform: translateX(4px);
+  }
+
+  .btn-outline-light {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background-color: transparent;
+    padding: 0.95rem 1.65rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    transition:
+      background-color 220ms ease,
+      border-color 220ms ease,
+      color 220ms ease,
+      transform 220ms ease;
+  }
+
+  .btn-outline-light:hover {
+    border-color: #fff;
+    background-color: #fff;
+    color: var(--color-ink);
+    transform: translateY(-2px);
+  }
+
+  .btn-dark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border: 1px solid var(--color-ink);
+    background-color: var(--color-ink);
+    padding: 0.95rem 1.65rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    transition:
+      background-color 220ms ease,
+      box-shadow 220ms ease,
+      transform 220ms ease;
+  }
+
+  .btn-dark:hover {
+    background-color: var(--color-ink-soft);
+    box-shadow: 0 16px 34px -16px rgba(10, 24, 38, 0.7);
+    transform: translateY(-2px);
+  }
+
+  .field {
+    width: 100%;
+    border: 1px solid var(--color-line);
+    background-color: #fff;
+    padding: 0.85rem 1rem;
+    font-size: 0.9rem;
+    color: var(--color-ink);
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease;
+  }
+
+  .field::placeholder {
+    color: #94a3b8;
+  }
+
+  .field:focus {
+    border-color: var(--color-brand);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+}
+
+/* Rich-text product descriptions. Kept outside Tailwind's typography reset so
+   bold, italic and list formatting saved by the admin editor renders exactly
+   as authored. */
+.rich-text {
+  overflow-wrap: anywhere;
+}
+
+.rich-text p,
+.rich-text div,
+.rich-text blockquote {
+  margin: 0;
+}
+
+.rich-text > * + *,
+.rich-text p + p {
+  margin-top: 0.5rem;
+}
+
+.rich-text ul,
+.rich-text ol {
+  margin: 0.5rem 0;
+  padding-left: 1.35rem;
+}
+
+.rich-text ul {
+  list-style: disc;
+}
+
+.rich-text ol {
+  list-style: decimal;
+}
+
+.rich-text li + li {
+  margin-top: 0.25rem;
+}
+
+.rich-text li > ul,
+.rich-text li > ol {
+  margin: 0.25rem 0 0;
+}
+
+.rich-text strong,
+.rich-text b {
+  font-weight: 700;
+}
+
+.rich-text em,
+.rich-text i {
+  font-style: italic;
+}
+
+.rich-text u {
+  text-decoration: underline;
+}
+
+[contenteditable][data-placeholder]:empty::before {
+  color: #94a3b8;
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+/* Decorative industrial grid used in dark sections. */
+.industrial-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to right, black 0%, transparent 78%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 78%);
+}
+
+/* Fine geometric grid behind the services section. */
+.services-pattern {
+  background-image:
+    linear-gradient(to right, rgba(10, 24, 38, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(10, 24, 38, 0.045) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(
+    ellipse 65% 55% at 50% 0%,
+    #000 0%,
+    transparent 78%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 65% 55% at 50% 0%,
+    #000 0%,
+    transparent 78%
+  );
+}
+
+.hero-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.12) 1px, transparent 1px);
+  background-size: 88px 88px;
+  mask-image: linear-gradient(105deg, black 0%, transparent 62%);
+  -webkit-mask-image: linear-gradient(105deg, black 0%, transparent 62%);
+}
+
+/* Slow, subtle hero image movement. */
+.hero-image {
+  animation: hero-zoom 24s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes hero-zoom {
+  from {
+    transform: scale(1.07);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Staggered entrance for hero content. */
+.hero-rise {
+  animation: hero-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-rise-1 {
+  animation-delay: 80ms;
+}
+
+.hero-rise-2 {
+  animation-delay: 180ms;
+}
+
+.hero-rise-3 {
+  animation-delay: 300ms;
+}
+
+.hero-rise-4 {
+  animation-delay: 430ms;
+}
+
+.hero-rise-5 {
+  animation-delay: 560ms;
+}
+
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.company-brief-title {
+  animation: company-brief-title-rise 800ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+.company-brief-title::after {
+  display: block;
+  width: min(28%, 8rem);
+  min-width: 4rem;
+  height: 2px;
+  margin-top: 0.9rem;
+  background: linear-gradient(90deg, #a84b32, #c47b58);
+  content: "";
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: company-brief-title-underline 650ms
+    cubic-bezier(0.22, 1, 0.36, 1) 350ms both;
+}
+
+@keyframes company-brief-title-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes company-brief-title-underline {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Scroll reveal, toggled by the Reveal component. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.product-card {
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 420ms ease;
+}
+
+.product-card:hover {
+  border-color: rgba(234, 88, 12, 0.45);
+  box-shadow: 0 30px 60px -28px rgba(10, 24, 38, 0.45);
+  transform: translateY(-8px);
+}
+
+.product-card:hover .product-card-image {
+  transform: scale(1.06);
+}
+
+.product-card-image {
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Product detail media column: it must always scroll with the page. The
+   !important guard overrides any stale or global sticky/fixed rule so the
+   image can never be pinned while the specifications and description move. */
+.product-media {
+  position: static !important;
+  top: auto !important;
+  align-self: start;
+}
+
+/* Product category tiles: a warm catalogue card with a restrained lift and
+   a slow image zoom on hover. */
+.category-card {
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 420ms ease;
+}
+
+.category-card:hover {
+  border-color: rgba(194, 65, 12, 0.42);
+  box-shadow: 0 28px 55px -30px rgba(10, 24, 38, 0.42);
+  transform: translateY(-6px);
+}
+
+.category-card-image {
+  transition: transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.category-card:hover .category-card-image {
+  transform: scale(1.05);
+}
+
+.category-card-title {
+  transition: color 300ms ease;
+}
+
+.category-card:hover .category-card-title {
+  color: var(--color-brand);
+}
+
+/* Category product view: a soft entrance for the right-hand listing and a
+   scrollbar-free category strip on small screens. */
+.category-content-enter {
+  animation: category-content-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes category-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.category-strip {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-strip::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .hero-image {
+    animation: none;
+  }
+
+  .company-brief-title {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .company-brief-title::after {
+    animation: none;
+    transform: scaleX(1);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Company Brief — editorial layout effects                                   */
+/* -------------------------------------------------------------------------- */
+
+/* Full-height opening hero: fills the first viewport without hiding the
+   breadcrumb under the sticky header. A vh fallback precedes svh for older
+   mobile browsers. */
+.company-brief-hero {
+  min-height: calc(100vh - 4rem);
+  min-height: calc(100svh - 4rem);
+}
+
+/* Anchor the signboard's detailed left-hand side in view, especially when the
+   tall hero crops the image on tablets and phones. */
+.company-hero-media {
+  object-position: 20% 50%;
+}
+
+/* Layered warm-ivory scrim: a soft cream wash sits strongest on the left,
+   behind the "Company Brief" headline, then fades away across the banner so
+   the signboard photograph stays clearly visible on the right. The top band
+   protects the small breadcrumb text without dulling the image. */
+.company-hero-scrim {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(251, 247, 238, 0.95) 0%,
+      rgba(251, 247, 238, 0.9) 20%,
+      rgba(251, 247, 238, 0.74) 34%,
+      rgba(251, 247, 238, 0.5) 48%,
+      rgba(251, 247, 238, 0.26) 62%,
+      rgba(251, 247, 238, 0.1) 76%,
+      rgba(251, 247, 238, 0.02) 89%,
+      rgba(251, 247, 238, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(251, 247, 238, 0.9) 0%,
+      rgba(251, 247, 238, 0.52) 9%,
+      rgba(251, 247, 238, 0.12) 18%,
+      rgba(251, 247, 238, 0) 28%
+    );
+}
+
+/* On stacked layouts the headline sits across the full width, so keep a touch
+   more cream on the right to hold text contrast while still showing the photo. */
+@media (max-width: 767px) {
+  .company-hero-scrim {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(251, 247, 238, 0.95) 0%,
+        rgba(251, 247, 238, 0.88) 45%,
+        rgba(251, 247, 238, 0.68) 75%,
+        rgba(251, 247, 238, 0.44) 100%
+      ),
+      linear-gradient(
+        180deg,
+        rgba(251, 247, 238, 0.9) 0%,
+        rgba(251, 247, 238, 0.5) 10%,
+        rgba(251, 247, 238, 0) 24%
+      );
+  }
+}
+
+/* Introduction sheet: it overlaps the lower edge of the hero and lifts into
+   place as the visitor scrolls. Only a transform animates, so the layout,
+   anchor targets and clickable content never move. Without JavaScript the
+   section still renders as a clean static overlap. */
+.company-brief-intro {
+  --cb-intro-lift: 0px;
+
+  position: relative;
+  z-index: 20;
+  margin-top: clamp(-92px, -8vh, -52px);
+}
+
+/* The sheet itself carries the cream surface, rounded edge and shadow. Keeping
+   the transform here (not on the section) leaves the #company-profile scroll
+   target untransformed, so anchor links land at a stable offset. */
+.company-brief-sheet {
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  box-shadow:
+    0 -16px 34px -22px rgba(30, 42, 35, 0.42),
+    0 -30px 60px -48px rgba(30, 42, 35, 0.35);
+  transform: translate3d(0, var(--cb-intro-lift, 0px), 0);
+}
+
+@media (min-width: 768px) {
+  .company-brief-sheet {
+    border-top-left-radius: 26px;
+    border-top-right-radius: 26px;
+  }
+}
+
+/* Optional Reveal variants. The default "up" animation is unchanged. */
+.reveal.reveal--left {
+  transform: translateX(-38px);
+}
+
+.reveal.reveal--left.is-visible {
+  transform: translateX(0);
+}
+
+.reveal.reveal--right {
+  transform: translateX(38px);
+}
+
+.reveal.reveal--right.is-visible {
+  transform: translateX(0);
+}
+
+.reveal.reveal--fade {
+  transform: none;
+}
+
+.reveal.reveal--fade.is-visible {
+  transform: none;
+}
+
+.reveal.reveal--scale {
+  transform: translateY(16px) scale(0.985);
+}
+
+.reveal.reveal--scale.is-visible {
+  transform: translateY(0) scale(1);
+}
+
+/* Curtain-style reveal for editorial photography.
+   The clip lives on the child so IntersectionObserver can still see the wrapper. */
+.reveal.reveal--image {
+  clip-path: none;
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.reveal.reveal--image > * {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 1100ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal.reveal--image.is-visible > * {
+  clip-path: inset(0 0 0 0);
+}
+
+/* Gentle zoom shared by the Company Brief photography. */
+.cb-zoom {
+  transition: transform 1300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .cb-zoom {
+  transform: scale(1.045);
+}
+
+/* Animated heading underline, drawn when the section reveals. */
+.cb-underline {
+  display: block;
+  width: min(7rem, 42%);
+  min-width: 3.5rem;
+  height: 2px;
+  margin-top: 1.35rem;
+  background: var(
+    --cb-underline-bg,
+    linear-gradient(90deg, #a84b32, rgba(168, 75, 50, 0.12))
+  );
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 850ms cubic-bezier(0.22, 1, 0.36, 1) 180ms;
+}
+
+.cb-underline--light {
+  --cb-underline-bg: linear-gradient(
+    90deg,
+    #fbf7ee,
+    rgba(251, 247, 238, 0.15)
+  );
+}
+
+.reveal.is-visible .cb-underline {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal.reveal--left,
+  .reveal.reveal--right,
+  .reveal.reveal--fade,
+  .reveal.reveal--scale,
+  .reveal.reveal--image,
+  .reveal.reveal--image > * {
+    clip-path: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .cb-underline {
+    transform: scaleX(1);
+  }
+
+  .group:hover .cb-zoom {
+    transform: none;
+  }
+
+  .category-card:hover {
+    transform: none;
+  }
+
+  .category-card:hover .category-card-image {
+    transform: none;
+  }
+
+  .company-brief-intro {
+    --cb-intro-lift: 0px;
+
+    margin-top: 0;
+  }
+
+  .company-brief-sheet {
+    transform: none;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Services band — true sticky overlap over the pinned Hero                   */
+/* -------------------------------------------------------------------------- */
+
+/* The stage sets the scroll range. The Hero is the sticky layer inside it, so
+   it stays pinned to the viewport while the Services section (painted above)
+   travels up and covers it.
+
+   The pin is shortened by the sticky header plus a small peek, so on first
+   load the whole Hero is visible and the leading edge of Services (its
+   rounded tab) already shows at the bottom of the viewport. */
+.home-hero-stage {
+  --home-header-h: 71px;
+  --home-hero-peek: 48px;
+  --home-hero-viewport: calc(
+    100svh - var(--home-header-h) - var(--home-hero-peek)
+  );
+  --home-services-min: 540px;
+
+  position: relative;
+  isolation: isolate;
+}
+
+.home-hero-pin {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  height: var(--home-hero-viewport);
+  min-height: 540px;
+  background-color: var(--color-ink);
+}
+
+.home-hero-pin > #home {
+  height: 100%;
+}
+
+@media (min-width: 640px) {
+  .home-hero-stage {
+    --home-header-h: 79px;
+    --home-hero-peek: 60px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-hero-stage {
+    --home-header-h: 95px;
+    --home-hero-peek: 80px;
+    --home-services-min: 640px;
+  }
+
+  .home-hero-pin {
+    min-height: 640px;
+  }
+}
+
+/* Services must be positioned, opaque and at least as tall as the pinned Hero
+   so it fully covers it before the sticky range ends. Matching the pin height
+   (rather than the whole viewport) removes the extra dead space below the
+   service cards while keeping the overlap intact. */
+.home-hero-stage > #services {
+  position: relative;
+  z-index: 10;
+  min-height: max(var(--home-services-min), var(--home-hero-viewport));
+  background-color: #fff;
+}
+
+.services-overlap {
+  position: relative;
+  scroll-margin-top: 10rem;
+}
+
+.services-sheet {
+  position: relative;
+  background-color: #fff;
+}
+
+/* Rounded "Services" tab, centred on the Hero / Services boundary. It is the
+   leading edge of the Services sheet, so it rides up and over the pinned Hero
+   with the rest of the section. */
+.services-tab {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 20;
+  width: min(568px, calc(100% - 2.5rem));
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  background-color: var(--color-paper);
+  box-shadow: 0 24px 44px -30px rgba(10, 24, 38, 0.55);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Decorative technical line art, drawn entirely with inline SVG strokes.
+   The mask keeps the drawing soft at the section edges. */
+.services-backdrop {
+  opacity: 0.36;
+  mask-image: radial-gradient(
+    ellipse 92% 88% at 50% 38%,
+    #000 10%,
+    rgba(0, 0, 0, 0.72) 56%,
+    transparent 96%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 92% 88% at 50% 38%,
+    #000 10%,
+    rgba(0, 0, 0, 0.72) 56%,
+    transparent 96%
+  );
+}
+

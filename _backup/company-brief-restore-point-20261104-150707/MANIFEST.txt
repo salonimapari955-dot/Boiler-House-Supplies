@@ -1,0 +1,28 @@
+﻿Company Brief restore point
+Created: 2026-11-04 15:07:12
+Project root: C:\Users\Saloni Ushant Mapari\Desktop\Boiler House
+Restore point: C:\Users\Saloni Ushant Mapari\Desktop\Boiler House\_backup\company-brief-restore-point-20261104-150707
+
+PAGE SOURCE
+  File: frontend/src/pages/CompanyBrief.jsx
+  SHA-256 before snapshot: EBDFA39D6BBFDEB982876D2AF8F6F033D298561836A8D1B81EC2593296B31944
+  SHA-256 after snapshot:  EBDFA39D6BBFDEB982876D2AF8F6F033D298561836A8D1B81EC2593296B31944
+  Bytes before/after: 52498 / 52498
+  Last modified before/after: 11/04/2026 14:35:25 / 11/04/2026 14:35:25
+  Expected pre-redesign hash: EBDFA39D6BBFDEB982876D2AF8F6F033D298561836A8D1B81EC2593296B31944
+  Matches expected pre-redesign hash: True
+  Source unchanged during snapshot: True
+
+FOCUSED COMPANY BRIEF BUNDLE
+  CompanyBrief.jsx: 52498 bytes, SHA-256 EBDFA39D6BBFDEB982876D2AF8F6F033D298561836A8D1B81EC2593296B31944
+  support/: exact copies of Company Brief styling and supporting files
+  company-assets/: copy of frontend/public/company (all page images)
+
+FULL PROJECT SNAPSHOT
+  Zip: project-snapshot-20261104-150707.zip
+  Entries: 135
+  Bytes: 26816114
+  SHA-256: 3A80F5249BDF8D7F871F0795FB840E43555BA984FED5A97CA47EDD2A73F8DAA4
+  Excluded: node_modules, dist, .git, _backup
+
+No live project source file was modified while creating this restore point.

@@ -1,0 +1,316 @@
+{
+  "createdAt": "2026-11-03T09:22:41.299Z",
+  "database": "boiler_house",
+  "categories": [
+    {
+      "_id": "6ae5cad15486d9b3909e903c",
+      "name": "Grate Bar",
+      "createdAt": "2026-10-31T11:02:41.463Z",
+      "updatedAt": "2026-11-03T07:12:23.590Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/grate-bar.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071637",
+      "name": "Globe Valve",
+      "createdAt": "2026-10-31T11:16:55.127Z",
+      "updatedAt": "2026-11-03T07:12:23.578Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/globe-valve.png"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071638",
+      "name": "Boiler Mountings",
+      "createdAt": "2026-10-31T11:16:55.135Z",
+      "updatedAt": "2026-11-03T07:12:23.596Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/boiler-mountings.png"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071639",
+      "name": "Grate Boiler",
+      "createdAt": "2026-10-31T11:16:55.137Z",
+      "updatedAt": "2026-11-03T07:12:23.601Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/grate-boiler.png"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f07163a",
+      "name": "Boiler Fire Door",
+      "createdAt": "2026-10-31T11:16:55.139Z",
+      "updatedAt": "2026-11-03T07:12:23.606Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/boiler-fire-door.png"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f07163b",
+      "name": "Refractory Cement",
+      "createdAt": "2026-10-31T11:16:55.141Z",
+      "updatedAt": "2026-11-03T07:12:23.611Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/refractory-cement.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f07163c",
+      "name": "Steam Valves",
+      "createdAt": "2026-10-31T11:16:55.145Z",
+      "updatedAt": "2026-11-03T07:12:23.617Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/steam-valves.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f07163d",
+      "name": "Fire Grate",
+      "createdAt": "2026-10-31T11:16:55.147Z",
+      "updatedAt": "2026-11-03T07:12:23.622Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/fire-grate.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f07163e",
+      "name": "Boiler Parts",
+      "createdAt": "2026-10-31T11:16:55.149Z",
+      "updatedAt": "2026-11-03T07:12:23.628Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/boiler-parts.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f07163f",
+      "name": "Boiler Tubes",
+      "createdAt": "2026-10-31T11:16:55.151Z",
+      "updatedAt": "2026-11-03T07:12:23.633Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/boiler-tubes.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071640",
+      "name": "Down Valve",
+      "createdAt": "2026-10-31T11:16:55.153Z",
+      "updatedAt": "2026-11-03T07:12:23.637Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/down-valve.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071641",
+      "name": "Ceramic Fiber Blanket",
+      "createdAt": "2026-10-31T11:16:55.155Z",
+      "updatedAt": "2026-11-03T07:12:23.640Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/ceramic-fiber-blanket.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071642",
+      "name": "Boiler Castings",
+      "createdAt": "2026-10-31T11:16:55.157Z",
+      "updatedAt": "2026-11-03T07:12:23.645Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/boiler-castings.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071643",
+      "name": "Check Valve",
+      "createdAt": "2026-10-31T11:16:55.159Z",
+      "updatedAt": "2026-11-03T07:12:23.649Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/check-valve.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071644",
+      "name": "Magnetic Switches",
+      "createdAt": "2026-10-31T11:16:55.161Z",
+      "updatedAt": "2026-11-03T07:12:23.653Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/magnetic-switches.jpg"
+    },
+    {
+      "_id": "6ae5ce2782f017ab4f071645",
+      "name": "Cleaning Brush",
+      "createdAt": "2026-10-31T11:16:55.164Z",
+      "updatedAt": "2026-11-03T07:12:23.657Z",
+      "__v": 0,
+      "description": "",
+      "image": "/products/categories/cleaning-brush.jpeg"
+    },
+    {
+      "_id": "6ae99cf4ab6be1d60debd52c",
+      "name": "test",
+      "description": "test",
+      "image": "/uploads/categories/1793694964177-53891887-dump-grate-bar-1000x1000.webp",
+      "createdAt": "2026-11-03T08:36:04.201Z",
+      "updatedAt": "2026-11-03T08:36:04.201Z",
+      "__v": 0
+    }
+  ],
+  "products": [
+    {
+      "_id": "6ae81c7c5e72ab4569dee30d",
+      "productName": "Pulsating Grate Bar",
+      "category": "6ae5cad15486d9b3909e903c",
+      "mainImage": "/uploads/products/1793596540636-243646291-Alloy-steel.webp",
+      "galleryImages": [
+        "/uploads/products/1793602345159-869418836-pulsating-grate-bar-1000x1000--1-.webp",
+        "/uploads/products/1793602345172-282983456-pulsating-grate-bar-1000x1000.webp"
+      ],
+      "price": 160,
+      "moq": 100,
+      "description": "A Stainless Steel Grate Bar is a crucial component in the construction of grate systems used in furnaces or boilers (such as stainless steel travelling grate boilers).",
+      "specifications": [
+        {
+          "name": "Material",
+          "value": "Alloy Steel"
+        },
+        {
+          "name": "Part Type",
+          "value": "Grate Bar"
+        },
+        {
+          "name": "Bar Length",
+          "value": "600 mm"
+        },
+        {
+          "name": "Casting Material",
+          "value": "Alloy Steel"
+        },
+        {
+          "name": "Bar Thickness",
+          "value": "70 mm"
+        },
+        {
+          "name": "Temperature Rating",
+          "value": "Above 1000 C"
+        },
+        {
+          "name": "Grate Type",
+          "value": "Reciprocating"
+        },
+        {
+          "name": "Operating Boiler Type",
+          "value": "Hot Water Boiler, Steam Boiler, Industrial Furnace, Biomass Boiler, Waste Heat Boiler, Power Boiler, Thermic Fluid Heater, Solid Fuel Boiler"
+        },
+        {
+          "name": "Boiler Type",
+          "value": "Steam Boiler, CFB Boiler, AFBC Boiler, Thermic Boiler"
+        },
+        {
+          "name": "Product Type",
+          "value": "Grate Bar"
+        },
+        {
+          "name": "Color",
+          "value": "Gray"
+        },
+        {
+          "name": "Usage/Application",
+          "value": "Industrial"
+        },
+        {
+          "name": "Surface Treatment",
+          "value": "As Cast"
+        },
+        {
+          "name": "Standard",
+          "value": "ASTM, DIN"
+        },
+        {
+          "name": "Packaging Type",
+          "value": "Box"
+        },
+        {
+          "name": "Warranty",
+          "value": "2 Year"
+        },
+        {
+          "name": "Country of Origin",
+          "value": "Made in India"
+        }
+      ],
+      "createdAt": "2026-11-02T05:15:40.666Z",
+      "updatedAt": "2026-11-03T06:51:23.640Z",
+      "__v": 3,
+      "moqUnit": "Kg",
+      "priceUnit": "Kg",
+      "youtubeVideos": [
+        "https://youtu.be/9Dfc32LhmNI?si=bctF-S2r6ppiP3C5"
+      ]
+    },
+    {
+      "_id": "6ae96f514a9cf92bc62b88e2",
+      "productName": "Cast Iron Dumping Grate Bar",
+      "category": "6ae5cad15486d9b3909e903c",
+      "mainImage": "/uploads/products/1793683281772-98154033-dump-grate-bar-1000x1000.webp",
+      "galleryImages": [],
+      "price": 155,
+      "priceUnit": "Kg",
+      "moq": 100,
+      "moqUnit": "Kg",
+      "description": "Dumping Grate Fire Bar<br>Dumping Grate Fire Bars are heavy-duty <b>cast iron / alloy steel grate bars</b> designed for efficient fuel combustion and easy ash removal in industrial boilers. These grate bars are specially engineered to <b>withstand high temperatures, continuous firing, and abrasive conditions</b>, making them ideal for biomass, coal, and agro-waste fired boilers.<div>The dumping mechanism allows <b>quick discharge of ash and unburnt fuel</b>, improving combustion efficiency and reducing boiler downtime.<br><br>🔥 Key Features<br><ul><li>Robust construction for high thermal and mechanical strength</li><li>Excellent resistance to heat, wear, and corrosion</li><li>Efficient air flow design for improved combustion</li><li>Easy dumping action for fast ash removal</li><li>Long service life with minimal maintenance</li><li>Precision casting for uniform fitting and alignment</li></ul></div>",
+      "specifications": [
+        {
+          "name": "Material",
+          "value": "Cast Iron"
+        },
+        {
+          "name": "Size",
+          "value": "150 mm (6 in)"
+        },
+        {
+          "name": "Load Class",
+          "value": "Heavy Duty (HD-20)"
+        },
+        {
+          "name": "Thickness",
+          "value": "25 mm"
+        },
+        {
+          "name": "Product Type",
+          "value": "Grate Bar"
+        },
+        {
+          "name": "Color",
+          "value": "Red"
+        },
+        {
+          "name": "Usage/Application",
+          "value": "Boiler Furnace"
+        },
+        {
+          "name": "Grate Design",
+          "value": "Slotted"
+        },
+        {
+          "name": "Application",
+          "value": "Industrial"
+        },
+        {
+          "name": "Shape",
+          "value": "Rectangle"
+        },
+        {
+          "name": "Packaging Type",
+          "value": "Wooden Box"
+        }
+      ],
+      "createdAt": "2026-11-03T05:21:21.824Z",
+      "updatedAt": "2026-11-03T06:52:31.839Z",
+      "__v": 1,
+      "youtubeVideos": [
+        "https://youtu.be/9Dfc32LhmNI?si=bctF-S2r6ppiP3C5"
+      ]
+    }
+  ]
+}
