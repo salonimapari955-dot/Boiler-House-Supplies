@@ -204,6 +204,7 @@ export function normalizeProduct(raw, index = 0) {
     _id: raw._id ? String(raw._id) : undefined,
     slug,
     name,
+    createdAt: raw.createdAt || raw.created_at || null,
     description:
       cleanText(raw.description) ||
       cleanText(raw.shortDescription) ||
@@ -256,6 +257,7 @@ export function normalizeCategory(raw, index = 0) {
     _id: raw._id ? String(raw._id) : undefined,
     slug,
     name,
+    createdAt: raw.createdAt || raw.created_at || null,
     description: cleanText(raw.description) || fallback?.description || "",
     image: toImageUrl(raw.image || raw.imageUrl) || fallback?.image || "",
     featured: isFeatured(raw),

@@ -9,6 +9,7 @@ import {
   StarIcon,
 } from "../../components/Icons.jsx";
 import api from "../../api.js";
+import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
 import { clearAdminToken, getAdminToken } from "../auth.js";
 
 const iconProps = {
@@ -60,14 +61,14 @@ function LogoutIcon({ className = "h-4 w-4" }) {
 
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
-  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Categories", to: "/admin/categories", icon: TagIcon },
   {
     label: "Manage Products",
     to: "/admin/manage-products",
     icon: PackageIcon,
   },
-  { label: "Categories", to: "/admin/categories", icon: TagIcon },
-  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
   { label: "Testimonials", to: "/admin/testimonials", icon: StarIcon },
 ];
 
@@ -319,6 +320,9 @@ export default function AdminDashboard() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
+                    {item.to === "/admin/enquiries" ? (
+                      <EnquiriesBadge />
+                    ) : null}
                   </NavLink>
                 );
               })}

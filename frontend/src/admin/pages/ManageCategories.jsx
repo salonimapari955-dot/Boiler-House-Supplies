@@ -12,6 +12,7 @@ import {
 import { productMatchesCategory } from "../../lib/productCatalog.js";
 import { clearAdminToken } from "../auth.js";
 import { useAdminData } from "../context/useAdminData.js";
+import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
 
 const iconProps = {
   fill: "none",
@@ -91,16 +92,58 @@ function TrashIcon({ className = "h-4 w-4" }) {
 
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
-  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Categories", to: "/admin/categories", icon: TagIcon },
   {
     label: "Manage Products",
     to: "/admin/manage-products",
     icon: PackageIcon,
   },
-  { label: "Categories", to: "/admin/categories", icon: TagIcon },
-  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
   { label: "Testimonials", to: "/admin/testimonials", icon: StarIcon },
 ];
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 30];
+const DEFAULT_PAGE_SIZE = 10;
+const FEATURED_PAGE_SIZE = 12;
+
+function toTimestamp(value) {
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function filterCategories(records, searchTerm) {
+  return records.filter((category) =>
+    `${category.name} ${category.description ?? ""}`
+      .toLowerCase()
+      .includes(searchTerm),
+  );
+}
+
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = [
+    ...new Set([
+      1,
+      totalPages,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+    ]),
+  ]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+
+  return pages.flatMap((page, index) => {
+    const previousPage = pages[index - 1];
+    const needsEllipsis = index > 0 && page - previousPage > 1;
+
+    return needsEllipsis ? [`ellipsis-${previousPage}`, page] : [page];
+  });
+}
 
 const emptyValues = { name: "", description: "" };
 
@@ -136,6 +179,9 @@ export default function ManageCategories() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [featuredPage, setFeaturedPage] = useState(1);
   const [values, setValues] = useState(emptyValues);
   const [editingId, setEditingId] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -202,11 +248,67 @@ export default function ManageCategories() {
 
   const searchTerm = query.trim().toLowerCase();
 
-  const filteredCategories = categories.filter((category) =>
-    `${category.name} ${category.description ?? ""}`
-      .toLowerCase()
-      .includes(searchTerm),
+  const orderedCategories = [...categories].sort(
+    (a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt),
   );
+
+  const featuredTotalPages = Math.max(
+    1,
+    Math.ceil(orderedCategories.length / FEATURED_PAGE_SIZE),
+  );
+  const featuredCurrentPage = Math.min(
+    Math.max(featuredPage, 1),
+    featuredTotalPages,
+  );
+  const featuredPageStart = (featuredCurrentPage - 1) * FEATURED_PAGE_SIZE;
+  const visibleFeaturedCategories = orderedCategories.slice(
+    featuredPageStart,
+    featuredPageStart + FEATURED_PAGE_SIZE,
+  );
+  const featuredPageNumbers = getPageNumbers(
+    featuredCurrentPage,
+    featuredTotalPages,
+  );
+  const featuredRangeStart = orderedCategories.length
+    ? featuredPageStart + 1
+    : 0;
+  const featuredRangeEnd = Math.min(
+    featuredPageStart + FEATURED_PAGE_SIZE,
+    orderedCategories.length,
+  );
+
+  const filteredCategories = filterCategories(orderedCategories, searchTerm);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredCategories.length / pageSize),
+  );
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleCategories = filteredCategories.slice(
+    pageStart,
+    pageStart + pageSize,
+  );
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const rangeStart = filteredCategories.length ? pageStart + 1 : 0;
+  const rangeEnd = Math.min(
+    pageStart + pageSize,
+    filteredCategories.length,
+  );
+
+  function goToPage(nextPage) {
+    setPage(Math.min(Math.max(nextPage, 1), totalPages));
+  }
+
+  function changePageSize(event) {
+    setPageSize(Number(event.target.value));
+    setPage(1);
+  }
+
+  function goToFeaturedPage(nextPage) {
+    setFeaturedPage(
+      Math.min(Math.max(nextPage, 1), featuredTotalPages),
+    );
+  }
 
   const maxFeatured = Math.min(MAX_FEATURED_CATEGORIES, categories.length);
 
@@ -455,6 +557,12 @@ export default function ManageCategories() {
         ? `"${name}" was updated.`
         : `"${name}" was added to the catalogue.`,
     );
+
+    if (!editingId) {
+      setPage(1);
+      setFeaturedPage(1);
+    }
+
     resetForm();
   }
 
@@ -499,6 +607,27 @@ export default function ManageCategories() {
           } moved to "${destination?.name ?? "the selected category"}".`
         : `"${category.name}" was deleted.`,
     );
+
+    const remainingCategories = categories.filter(
+      (item) => item.id !== category.id,
+    );
+    const remainingFiltered = filterCategories(
+      remainingCategories,
+      searchTerm,
+    );
+    const lastPage = Math.max(
+      1,
+      Math.ceil(remainingFiltered.length / pageSize),
+    );
+
+    setPage((current) => Math.min(current, lastPage));
+
+    const lastFeaturedPage = Math.max(
+      1,
+      Math.ceil((categories.length - 1) / FEATURED_PAGE_SIZE),
+    );
+
+    setFeaturedPage((current) => Math.min(current, lastFeaturedPage));
 
     if (editingId === category.id) {
       resetForm();
@@ -590,6 +719,9 @@ export default function ManageCategories() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
+                    {item.to === "/admin/enquiries" ? (
+                      <EnquiriesBadge />
+                    ) : null}
                   </NavLink>
                 );
               })}
@@ -714,8 +846,8 @@ export default function ManageCategories() {
                   </div>
                 </div>
 
-                <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
-                  {categories.map((category) => {
+                <div className="grid gap-2 p-4 sm:grid-cols-2 sm:p-5 lg:grid-cols-3">
+                  {visibleFeaturedCategories.map((category) => {
                     const checked = featuredIds.includes(category.id);
                     const disabled =
                       !checked && featuredIds.length >= maxFeatured;
@@ -774,6 +906,80 @@ export default function ManageCategories() {
                   })}
                 </div>
 
+                <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500">
+                    <span>
+                      Showing{" "}
+                      <span className="font-semibold text-slate-700">
+                        {featuredRangeStart}–{featuredRangeEnd}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-slate-700">
+                        {orderedCategories.length}
+                      </span>{" "}
+                      {orderedCategories.length === 1
+                        ? "category"
+                        : "categories"}
+                    </span>
+                  </div>
+
+                  <nav
+                    aria-label="Featured category pagination"
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => goToFeaturedPage(featuredCurrentPage - 1)}
+                      disabled={featuredCurrentPage <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      <ChevronDownIcon className="h-3.5 w-3.5 rotate-90" />
+                      Previous
+                    </button>
+
+                    {featuredPageNumbers.map((pageNumber) =>
+                      typeof pageNumber === "number" ? (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => goToFeaturedPage(pageNumber)}
+                          aria-label={`Go to featured categories page ${pageNumber}`}
+                          aria-current={
+                            pageNumber === featuredCurrentPage
+                              ? "page"
+                              : undefined
+                          }
+                          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                            pageNumber === featuredCurrentPage
+                              ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ) : (
+                        <span
+                          key={pageNumber}
+                          aria-hidden="true"
+                          className="px-1 text-xs text-slate-400"
+                        >
+                          …
+                        </span>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => goToFeaturedPage(featuredCurrentPage + 1)}
+                      disabled={featuredCurrentPage >= featuredTotalPages}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      Next
+                      <ChevronDownIcon className="h-3.5 w-3.5 -rotate-90" />
+                    </button>
+                  </nav>
+                </div>
+
                 {featuredStatus.message ? (
                   <p
                     role="status"
@@ -806,7 +1012,10 @@ export default function ManageCategories() {
                       id="category-search"
                       type="search"
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setPage(1);
+                      }}
                       placeholder="Search categories"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-3.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
                     />
@@ -874,7 +1083,7 @@ export default function ManageCategories() {
                       </thead>
 
                       <tbody className="divide-y divide-slate-100">
-                        {filteredCategories.map((category) => {
+                        {visibleCategories.map((category) => {
                           const count = productCounts[category.id] ?? 0;
 
                           return (
@@ -979,7 +1188,10 @@ export default function ManageCategories() {
 
                     <button
                       type="button"
-                      onClick={() => setQuery("")}
+                      onClick={() => {
+                        setQuery("");
+                        setPage(1);
+                      }}
                       className="mt-5 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-100 hover:text-slate-900"
                     >
                       Clear search
@@ -1009,6 +1221,103 @@ export default function ManageCategories() {
                     </button>
                   </div>
                 )}
+
+                {filteredCategories.length > 0 ? (
+                  <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500">
+                      <label
+                        htmlFor="category-page-size"
+                        className="font-medium text-slate-600"
+                      >
+                        Rows per page
+                      </label>
+
+                      <div className="relative">
+                        <select
+                          id="category-page-size"
+                          value={pageSize}
+                          onChange={changePageSize}
+                          className="appearance-none rounded-xl border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                        >
+                          {PAGE_SIZE_OPTIONS.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      </div>
+
+                      <span>
+                        Showing{" "}
+                        <span className="font-semibold text-slate-700">
+                          {rangeStart}–{rangeEnd}
+                        </span>{" "}
+                        of{" "}
+                        <span className="font-semibold text-slate-700">
+                          {filteredCategories.length}
+                        </span>{" "}
+                        {filteredCategories.length === 1
+                          ? "category"
+                          : "categories"}
+                      </span>
+                    </div>
+
+                    <nav
+                      aria-label="Category pagination"
+                      className="flex flex-wrap items-center gap-1.5"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => goToPage(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                      >
+                        <ChevronDownIcon className="h-3.5 w-3.5 rotate-90" />
+                        Previous
+                      </button>
+
+                      {pageNumbers.map((pageNumber) =>
+                        typeof pageNumber === "number" ? (
+                          <button
+                            key={pageNumber}
+                            type="button"
+                            onClick={() => goToPage(pageNumber)}
+                            aria-label={`Go to page ${pageNumber}`}
+                            aria-current={
+                              pageNumber === currentPage ? "page" : undefined
+                            }
+                            className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                              pageNumber === currentPage
+                                ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                            }`}
+                          >
+                            {pageNumber}
+                          </button>
+                        ) : (
+                          <span
+                            key={pageNumber}
+                            aria-hidden="true"
+                            className="px-1 text-xs text-slate-400"
+                          >
+                            …
+                          </span>
+                        ),
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => goToPage(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                      >
+                        Next
+                        <ChevronDownIcon className="h-3.5 w-3.5 -rotate-90" />
+                      </button>
+                    </nav>
+                  </div>
+                ) : null}
               </section>
 
               <aside

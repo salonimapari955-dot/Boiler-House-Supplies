@@ -13,6 +13,8 @@ import api from "../../api.js";
 import { getPlainText } from "../../lib/richText.js";
 import { getYouTubeVideoId } from "../../lib/youtube.js";
 import RichTextEditor from "../components/RichTextEditor.jsx";
+import SearchableCategorySelect from "../components/SearchableCategorySelect.jsx";
+import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
 import { clearAdminToken, getAdminToken } from "../auth.js";
 
 const iconProps = {
@@ -83,14 +85,14 @@ function FileIcon({ className = "h-5 w-5" }) {
 
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
-  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Categories", to: "/admin/categories", icon: TagIcon },
   {
     label: "Manage Products",
     to: "/admin/manage-products",
     icon: PackageIcon,
   },
-  { label: "Categories", to: "/admin/categories", icon: TagIcon },
-  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
   { label: "Testimonials", to: "/admin/testimonials", icon: StarIcon },
 ];
 
@@ -970,6 +972,9 @@ export default function AddProduct() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
+                    {item.to === "/admin/enquiries" ? (
+                      <EnquiriesBadge />
+                    ) : null}
                   </NavLink>
                 );
               })}
@@ -1117,38 +1122,35 @@ export default function AddProduct() {
                     <span className="ml-0.5 text-rose-500">*</span>
                   </label>
 
-                  <div className="relative mt-1.5">
-                    <select
+                  <div className="mt-1.5">
+                    <SearchableCategorySelect
                       id="product-category"
-                      name="category"
                       value={values.category}
-                      onChange={handleChange}
-                      disabled={categoriesLoading || Boolean(categoriesError)}
-                      aria-invalid={Boolean(errors.category)}
-                      aria-describedby={
-                        errors.category ? "product-category-error" : undefined
+                      onChange={(next) =>
+                        handleChange({
+                          target: { name: "category", value: next },
+                        })
                       }
-                      className={`w-full appearance-none rounded-xl border bg-slate-50/70 px-3.5 py-3 pr-10 text-sm transition-colors focus:bg-white focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:opacity-70 ${
-                        errors.category
-                          ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                          : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-                      } ${values.category ? "text-slate-800" : "text-slate-400"}`}
-                    >
-                      <option value="">
-                        {categoriesLoading
+                      options={categories.map((category) => ({
+                        value: String(category._id),
+                        label: category.name,
+                      }))}
+                      placeholder={
+                        categoriesLoading
                           ? "Loading categories..."
                           : categories.length
                             ? "Select a category"
-                            : "No categories available"}
-                      </option>
-                      {categories.map((category) => (
-                        <option key={category._id} value={category._id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                            : "No categories available"
+                      }
+                      disabled={
+                        categoriesLoading || Boolean(categoriesError)
+                      }
+                      invalid={Boolean(errors.category)}
+                      describedBy={
+                        errors.category ? "product-category-error" : undefined
+                      }
+                      variant="form"
+                    />
                   </div>
 
                   {categoriesError ? (

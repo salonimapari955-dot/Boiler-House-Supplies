@@ -10,6 +10,8 @@ import {
   PackageIcon,
   StarIcon,
 } from "../../components/Icons.jsx";
+import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
+import { notifyEnquiriesUpdated } from "../hooks/useUnreadEnquiries.js";
 import { clearAdminToken, getAdminToken } from "../auth.js";
 
 const iconProps = {
@@ -90,14 +92,14 @@ function TrashIcon({ className = "h-4 w-4" }) {
 
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
-  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Categories", to: "/admin/categories", icon: TagIcon },
   {
     label: "Manage Products",
     to: "/admin/manage-products",
     icon: PackageIcon,
   },
-  { label: "Categories", to: "/admin/categories", icon: TagIcon },
-  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
   { label: "Testimonials", to: "/admin/testimonials", icon: StarIcon },
 ];
 
@@ -124,6 +126,58 @@ function normalizeEnquiry(enquiry) {
     status: enquiry.status || "new",
     date: enquiry.createdAt || enquiry.date || enquiry.updatedAt,
   };
+}
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 30];
+const DEFAULT_PAGE_SIZE = 10;
+
+function toTimestamp(value) {
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function filterEnquiries(records, searchTerm, statusFilter) {
+  return records.filter((enquiry) => {
+    const enquiryStatus = enquiry.status ?? "new";
+    const matchesStatus =
+      statusFilter === "new"
+        ? enquiryStatus !== "read"
+        : statusFilter === "read"
+          ? enquiryStatus === "read"
+          : true;
+    const matchesQuery = searchTerm
+      ? `${enquiry.name} ${enquiry.email} ${enquiry.phone} ${enquiry.message}`
+          .toLowerCase()
+          .includes(searchTerm)
+      : true;
+
+    return matchesStatus && matchesQuery;
+  });
+}
+
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = [
+    ...new Set([
+      1,
+      totalPages,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+    ]),
+  ]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+
+  return pages.flatMap((page, index) => {
+    const previousPage = pages[index - 1];
+    const needsEllipsis = index > 0 && page - previousPage > 1;
+
+    return needsEllipsis ? [`ellipsis-${previousPage}`, page] : [page];
+  });
 }
 
 function StatusBadge({ status }) {
@@ -158,6 +212,8 @@ export default function ManageEnquiries() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [confirmingId, setConfirmingId] = useState(null);
   const [activeEnquiry, setActiveEnquiry] = useState(null);
   const [status, setStatus] = useState("");
@@ -179,7 +235,11 @@ export default function ManageEnquiries() {
           throw new Error("The enquiries response did not contain an enquiries list.");
         }
 
-        setEnquiries(records.map(normalizeEnquiry));
+        setEnquiries(
+          records
+            .map(normalizeEnquiry)
+            .sort((a, b) => toTimestamp(b.date) - toTimestamp(a.date)),
+        );
       } catch (requestError) {
         if (requestError.code === "ERR_CANCELED" || signal?.aborted) return;
 
@@ -233,23 +293,35 @@ export default function ManageEnquiries() {
   }
 
   const searchTerm = query.trim().toLowerCase();
-
-  const filteredEnquiries = enquiries.filter((enquiry) => {
-    const matchesStatus = statusFilter
-      ? (enquiry.status ?? "new") === statusFilter
-      : true;
-    const matchesQuery = searchTerm
-      ? `${enquiry.name} ${enquiry.email} ${enquiry.phone} ${enquiry.message}`
-          .toLowerCase()
-          .includes(searchTerm)
-      : true;
-
-    return matchesStatus && matchesQuery;
-  });
+  const filteredEnquiries = filterEnquiries(
+    enquiries,
+    searchTerm,
+    statusFilter,
+  );
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredEnquiries.length / pageSize),
+  );
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleEnquiries = filteredEnquiries.slice(
+    pageStart,
+    pageStart + pageSize,
+  );
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const rangeStart = filteredEnquiries.length ? pageStart + 1 : 0;
+  const rangeEnd = Math.min(
+    pageStart + pageSize,
+    filteredEnquiries.length,
+  );
 
   const unreadCount = enquiries.filter(
     (enquiry) => (enquiry.status ?? "new") !== "read",
   ).length;
+
+  function goToPage(nextPage) {
+    setPage(Math.min(Math.max(nextPage, 1), totalPages));
+  }
 
   async function markAsRead(id) {
     const target = enquiries.find((enquiry) => enquiry.id === id);
@@ -269,15 +341,26 @@ export default function ManageEnquiries() {
       }
 
       const updatedEnquiry = normalizeEnquiry(response.data.enquiry);
-      setEnquiries((current) =>
-        current.map((enquiry) =>
-          enquiry.id === id ? updatedEnquiry : enquiry,
-        ),
+      const updatedEnquiries = enquiries.map((enquiry) =>
+        enquiry.id === id ? updatedEnquiry : enquiry,
       );
+      const updatedFiltered = filterEnquiries(
+        updatedEnquiries,
+        searchTerm,
+        statusFilter,
+      );
+      const lastPage = Math.max(
+        1,
+        Math.ceil(updatedFiltered.length / pageSize),
+      );
+
+      setEnquiries(updatedEnquiries);
+      setPage((current) => Math.min(current, lastPage));
       setActiveEnquiry((current) =>
         current?.id === id ? updatedEnquiry : current,
       );
       setStatus(`Enquiry from "${target.name}" was marked as read.`);
+      notifyEnquiriesUpdated();
     } catch (requestError) {
       if (requestError.response?.status === 401) {
         clearAdminToken();
@@ -308,12 +391,25 @@ export default function ManageEnquiries() {
         throw new Error(response.data?.message || "Unable to delete enquiry.");
       }
 
-      setEnquiries((current) =>
-        current.filter((enquiry) => enquiry.id !== id),
+      const remainingEnquiries = enquiries.filter(
+        (enquiry) => enquiry.id !== id,
       );
+      const remainingFiltered = filterEnquiries(
+        remainingEnquiries,
+        searchTerm,
+        statusFilter,
+      );
+      const lastPage = Math.max(
+        1,
+        Math.ceil(remainingFiltered.length / pageSize),
+      );
+
+      setEnquiries(remainingEnquiries);
+      setPage((current) => Math.min(current, lastPage));
       if (activeEnquiry?.id === id) setActiveEnquiry(null);
       setConfirmingId(null);
       setStatus(`Enquiry from "${target.name}" was deleted.`);
+      notifyEnquiriesUpdated();
     } catch (requestError) {
       if (requestError.response?.status === 401) {
         clearAdminToken();
@@ -332,6 +428,12 @@ export default function ManageEnquiries() {
   function clearFilters() {
     setQuery("");
     setStatusFilter("");
+    setPage(1);
+  }
+
+  function changePageSize(event) {
+    setPageSize(Number(event.target.value));
+    setPage(1);
   }
 
   return (
@@ -417,6 +519,9 @@ export default function ManageEnquiries() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
+                    {item.to === "/admin/enquiries" ? (
+                      <EnquiriesBadge />
+                    ) : null}
                   </NavLink>
                 );
               })}
@@ -506,7 +611,10 @@ export default function ManageEnquiries() {
                       id="enquiry-search"
                       type="search"
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setPage(1);
+                      }}
                       placeholder="Search by name, email, phone or message"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-3.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
                     />
@@ -520,16 +628,16 @@ export default function ManageEnquiries() {
                     <select
                       id="enquiry-status-filter"
                       value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value)}
+                      onChange={(event) => {
+                        setStatusFilter(event.target.value);
+                        setPage(1);
+                      }}
                       className={`w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 py-2.5 pl-3.5 pr-10 text-sm transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10 ${
                         statusFilter ? "text-slate-800" : "text-slate-500"
                       }`}
                     >
                       <option value="">All statuses</option>
                       <option value="new">New</option>
-                      <option value="contacted">Contacted</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
                       <option value="read">Read</option>
                     </select>
 
@@ -577,7 +685,7 @@ export default function ManageEnquiries() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                      {filteredEnquiries.map((enquiry) => {
+                      {visibleEnquiries.map((enquiry) => {
                         const isUnread = (enquiry.status ?? "new") !== "read";
 
                         return (
@@ -774,6 +882,103 @@ export default function ManageEnquiries() {
                   </p>
                 </div>
               )}
+
+              {filteredEnquiries.length > 0 ? (
+                <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500">
+                    <label
+                      htmlFor="enquiry-page-size"
+                      className="font-medium text-slate-600"
+                    >
+                      Rows per page
+                    </label>
+
+                    <div className="relative">
+                      <select
+                        id="enquiry-page-size"
+                        value={pageSize}
+                        onChange={changePageSize}
+                        className="appearance-none rounded-xl border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      >
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    </div>
+
+                    <span>
+                      Showing{" "}
+                      <span className="font-semibold text-slate-700">
+                        {rangeStart}–{rangeEnd}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-slate-700">
+                        {filteredEnquiries.length}
+                      </span>{" "}
+                      {filteredEnquiries.length === 1
+                        ? "enquiry"
+                        : "enquiries"}
+                    </span>
+                  </div>
+
+                  <nav
+                    aria-label="Enquiry pagination"
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      <ChevronDownIcon className="h-3.5 w-3.5 rotate-90" />
+                      Previous
+                    </button>
+
+                    {pageNumbers.map((pageNumber) =>
+                      typeof pageNumber === "number" ? (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => goToPage(pageNumber)}
+                          aria-label={`Go to page ${pageNumber}`}
+                          aria-current={
+                            pageNumber === currentPage ? "page" : undefined
+                          }
+                          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                            pageNumber === currentPage
+                              ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ) : (
+                        <span
+                          key={pageNumber}
+                          aria-hidden="true"
+                          className="px-1 text-xs text-slate-400"
+                        >
+                          …
+                        </span>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      Next
+                      <ChevronDownIcon className="h-3.5 w-3.5 -rotate-90" />
+                    </button>
+                  </nav>
+                </div>
+              ) : null}
             </section>
           </main>
         </div>

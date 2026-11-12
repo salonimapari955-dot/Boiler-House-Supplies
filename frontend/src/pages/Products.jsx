@@ -188,27 +188,6 @@ export default function Products() {
                 </ul>
               )}
             </div>
-
-            <Reveal>
-              <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border border-line bg-white px-5 py-4 sm:px-6">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-brand">
-                    Need something specific?
-                  </p>
-                  <p className="mt-1 max-w-2xl text-xs leading-6 text-steel">
-                    Share the product, size or application and our team will
-                    confirm availability, specifications and pricing.
-                  </p>
-                </div>
-                <Link
-                  to="/#contact"
-                  className="inline-flex shrink-0 items-center gap-2 bg-ink px-4 py-3 text-[10px] font-bold uppercase tracking-[0.14em] text-white transition-colors hover:bg-brand"
-                >
-                  Contact Our Team
-                  <ArrowRightIcon className="h-4 w-4" />
-                </Link>
-              </div>
-            </Reveal>
           </div>
         </section>
       </main>

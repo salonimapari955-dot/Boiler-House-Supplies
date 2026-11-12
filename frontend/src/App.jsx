@@ -134,10 +134,6 @@ function Hero() {
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 hidden items-center gap-3 text-[9px] font-semibold uppercase tracking-[0.24em] text-white/50 lg:flex">
-        <span>Scroll</span>
-        <span className="h-12 w-px bg-gradient-to-b from-brand-bright to-transparent" />
-      </div>
     </section>
   );
 }

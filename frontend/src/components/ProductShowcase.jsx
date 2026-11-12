@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import ProductEnquiryModal from "./ProductEnquiryModal.jsx";
 import RichText from "./RichText.jsx";
 import {
@@ -7,7 +8,13 @@ import {
   getYouTubeVideoId,
   getYouTubeWatchUrl,
 } from "../lib/youtube.js";
-import { FileCheckIcon, MailIcon, PackageIcon, PhoneIcon } from "./Icons.jsx";
+import {
+  CloseIcon,
+  FileCheckIcon,
+  MailIcon,
+  PackageIcon,
+  PhoneIcon,
+} from "./Icons.jsx";
 
 // Exact product content from
 // https://www.boilerhouse.in/grate-bar.html#pulsating-grate-bar
@@ -206,6 +213,145 @@ function getProductContent(product) {
   };
 }
 
+function getGalleryVideoId(item) {
+  if (!item || item.type !== "video") return "";
+
+  return item.videoId || getYouTubeVideoId(item.href || item.full) || "";
+}
+
+function ProductMediaGallery({ items = [], name, initialIndex = 0, onClose }) {
+  const [index, setIndex] = useState(initialIndex);
+  const activeItem = items[index] || items[0];
+  const videoId = getGalleryVideoId(activeItem);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") onClose();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 p-3 sm:p-6"
+      onMouseDown={(event) => {
+        // Close only when the backdrop itself is clicked.
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close media gallery"
+        autoFocus
+        className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#0f0f10] shadow-lg transition-colors hover:bg-[#f0f0f0] sm:right-5 sm:top-5"
+      >
+        <CloseIcon className="h-5 w-5" />
+      </button>
+
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${name} media gallery`}
+        className="flex h-[86dvh] max-h-[86dvh] w-full max-w-[1120px] overflow-hidden bg-white shadow-2xl"
+      >
+        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center bg-[#f7f7f7] p-3 sm:p-5">
+          {activeItem ? (
+            activeItem.type === "video" && videoId ? (
+              <div className="aspect-video w-full max-w-[860px]">
+                <iframe
+                  key={videoId}
+                  src={getYouTubeEmbedUrl(videoId, { autoplay: true })}
+                  title={`${name} product video`}
+                  className="h-full w-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
+                />
+              </div>
+            ) : activeItem.type === "video" ? (
+              <a
+                href={activeItem.href || activeItem.full}
+                target="_blank"
+                rel="noreferrer"
+                className="group relative flex max-h-full max-w-full items-center justify-center"
+                aria-label="Play product video"
+              >
+                <img
+                  src={activeItem.full}
+                  alt=""
+                  className="max-h-full max-w-full object-contain"
+                />
+                <span className="absolute inset-0 flex items-center justify-center bg-black/25 transition-colors group-hover:bg-black/35">
+                  <span className="flex h-[60px] w-[80px] items-center justify-center rounded-[16px] bg-[#c2450f]">
+                    <span className="ml-[5px] h-0 w-0 border-y-[12px] border-l-[20px] border-y-transparent border-l-white" />
+                  </span>
+                </span>
+              </a>
+            ) : (
+              <img
+                src={activeItem.full}
+                alt={name}
+                className="max-h-full max-w-full object-contain"
+              />
+            )
+          ) : null}
+        </div>
+
+        <div className="flex w-[88px] shrink-0 flex-col gap-3 overflow-y-auto border-l border-[#ececec] bg-white p-3 sm:w-[108px] sm:gap-4 sm:p-4">
+          {items.map((item, itemIndex) => {
+            const selected = itemIndex === index;
+            const itemVideoId = getGalleryVideoId(item);
+
+            return (
+              <button
+                key={`${item.thumb}-${itemIndex}`}
+                type="button"
+                onClick={() => setIndex(itemIndex)}
+                aria-label={`Show ${item.type === "video" ? "video" : "image"} ${itemIndex + 1} of ${name}`}
+                aria-pressed={selected}
+                className={`relative aspect-square w-full shrink-0 overflow-hidden border transition-colors ${
+                  selected
+                    ? "border-[#c2450f] p-[3px]"
+                    : "border-[#d4d4d4] p-0 hover:border-[#c2450f]"
+                }`}
+              >
+                <img
+                  src={item.thumb}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+
+                {item.type === "video" ? (
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <span className="flex h-4 w-5 items-center justify-center rounded-[3px] bg-[#c2450f]">
+                      <span className="ml-[2px] h-0 w-0 border-y-[4px] border-l-[6px] border-y-transparent border-l-white" />
+                    </span>
+                  </span>
+                ) : null}
+
+                {item.type === "video" && !itemVideoId ? (
+                  <span className="sr-only">Opens the video in a new tab</span>
+                ) : null}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function ProductTitle({ content, headingLevel, onRequestCallback }) {
   const HeadingTag = headingLevel === "h1" ? "h1" : "h2";
 
@@ -264,6 +410,7 @@ export default function ProductShowcase({
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [modalMode, setModalMode] = useState("enquiry");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [galleryOpen, setGalleryOpen] = useState(false);
 
   const content = getProductContent(product);
 
@@ -278,11 +425,7 @@ export default function ProductShowcase({
   }
 
   const activeItem = content.gallery[activeIndex] || content.gallery[0];
-  const activeVideoId =
-    activeItem?.type === "video"
-      ? activeItem.videoId ||
-        getYouTubeVideoId(activeItem.href || activeItem.full)
-      : "";
+  const activeVideoId = getGalleryVideoId(activeItem);
 
   return (
     <>
@@ -337,11 +480,18 @@ export default function ProductShowcase({
                       </span>
                     </a>
                   ) : (
-                    <img
-                      src={activeItem.full}
-                      alt={content.name}
-                      className="h-full w-full object-contain p-1"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setGalleryOpen(true)}
+                      className="block h-full w-full cursor-zoom-in"
+                      aria-label={`Open ${content.name} media gallery`}
+                    >
+                      <img
+                        src={activeItem.full}
+                        alt={content.name}
+                        className="h-full w-full object-contain p-1"
+                      />
+                    </button>
                   )
                 ) : (
                   <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-slate-400">
@@ -485,6 +635,15 @@ export default function ProductShowcase({
           </div>
         </div>
       </article>
+
+      {galleryOpen ? (
+        <ProductMediaGallery
+          items={content.gallery}
+          name={content.name}
+          initialIndex={activeIndex}
+          onClose={() => setGalleryOpen(false)}
+        />
+      ) : null}
 
       <ProductEnquiryModal
         open={enquiryOpen}

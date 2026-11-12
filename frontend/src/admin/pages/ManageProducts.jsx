@@ -12,6 +12,8 @@ import {
 import { clearAdminToken } from "../auth.js";
 import { useAdminProducts } from "../hooks/useAdminProducts.js";
 import { useCategories } from "../../hooks/useCategories.js";
+import SearchableCategorySelect from "../components/SearchableCategorySelect.jsx";
+import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
 
 const iconProps = {
   fill: "none",
@@ -91,16 +93,49 @@ function TrashIcon({ className = "h-4 w-4" }) {
 
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
-  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Categories", to: "/admin/categories", icon: TagIcon },
   {
     label: "Manage Products",
     to: "/admin/manage-products",
     icon: PackageIcon,
   },
-  { label: "Categories", to: "/admin/categories", icon: TagIcon },
-  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
   { label: "Testimonials", to: "/admin/testimonials", icon: StarIcon },
 ];
+
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 30];
+const DEFAULT_PAGE_SIZE = 10;
+
+function toTimestamp(value) {
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = [
+    ...new Set([
+      1,
+      totalPages,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+    ]),
+  ]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+
+  return pages.flatMap((page, index) => {
+    const previousPage = pages[index - 1];
+    const needsEllipsis = index > 0 && page - previousPage > 1;
+
+    return needsEllipsis ? [`ellipsis-${previousPage}`, page] : [page];
+  });
+}
 
 export default function ManageProducts() {
   const navigate = useNavigate();
@@ -116,6 +151,8 @@ export default function ManageProducts() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [confirmingId, setConfirmingId] = useState(null);
   const [lastRemoved, setLastRemoved] = useState(null);
   const [status, setStatus] = useState("");
@@ -143,7 +180,11 @@ export default function ManageProducts() {
 
   const searchTerm = query.trim().toLowerCase();
 
-  const filteredProducts = products.filter((product) => {
+  const orderedProducts = [...products].sort(
+    (a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt),
+  );
+
+  const filteredProducts = orderedProducts.filter((product) => {
     const matchesCategory = category ? product.category === category : true;
     const matchesQuery = searchTerm
       ? `${product.name} ${product.category}`
@@ -153,6 +194,32 @@ export default function ManageProducts() {
 
     return matchesCategory && matchesQuery;
   });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredProducts.length / pageSize),
+  );
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleProducts = filteredProducts.slice(
+    pageStart,
+    pageStart + pageSize,
+  );
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const rangeStart = filteredProducts.length ? pageStart + 1 : 0;
+  const rangeEnd = Math.min(
+    pageStart + pageSize,
+    filteredProducts.length,
+  );
+
+  function goToPage(nextPage) {
+    setPage(Math.min(Math.max(nextPage, 1), totalPages));
+  }
+
+  function changePageSize(event) {
+    setPageSize(Number(event.target.value));
+    setPage(1);
+  }
 
   function handleEdit(product) {
     setConfirmingId(null);
@@ -165,6 +232,27 @@ export default function ManageProducts() {
 
     try {
       await remove(product.id);
+      const remainingProducts = products.filter(
+        (item) => item.id !== product.id,
+      );
+      const remainingFiltered = remainingProducts.filter((item) => {
+        const matchesCategory = category
+          ? item.category === category
+          : true;
+        const matchesQuery = searchTerm
+          ? `${item.name} ${item.category}`
+              .toLowerCase()
+              .includes(searchTerm)
+          : true;
+
+        return matchesCategory && matchesQuery;
+      });
+      const lastPage = Math.max(
+        1,
+        Math.ceil(remainingFiltered.length / pageSize),
+      );
+
+      setPage((current) => Math.min(current, lastPage));
       setConfirmingId(null);
       setLastRemoved(product);
       setStatus(`"${product.name}" was deleted.`);
@@ -184,6 +272,7 @@ export default function ManageProducts() {
       await restore(lastRemoved);
       setStatus(`"${lastRemoved.name}" was restored.`);
       setLastRemoved(null);
+      setPage(1);
     } catch (requestError) {
       setStatus(
         requestError.response?.data?.message ||
@@ -195,6 +284,7 @@ export default function ManageProducts() {
   function clearFilters() {
     setQuery("");
     setCategory("");
+    setPage(1);
   }
 
   return (
@@ -280,6 +370,9 @@ export default function ManageProducts() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
+                    {item.to === "/admin/enquiries" ? (
+                      <EnquiriesBadge />
+                    ) : null}
                   </NavLink>
                 );
               })}
@@ -373,7 +466,10 @@ export default function ManageProducts() {
                       id="product-search"
                       type="search"
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setPage(1);
+                      }}
                       placeholder="Search by product name"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-3.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
                     />
@@ -384,23 +480,20 @@ export default function ManageProducts() {
                       Filter by category
                     </label>
 
-                    <select
+                    <SearchableCategorySelect
                       id="product-category-filter"
                       value={category}
-                      onChange={(event) => setCategory(event.target.value)}
-                      className={`w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 py-2.5 pl-3.5 pr-10 text-sm transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10 ${
-                        category ? "text-slate-800" : "text-slate-500"
-                      }`}
-                    >
-                      <option value="">All categories</option>
-                      {categories.map((item) => (
-                        <option key={item.id} value={item.name}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </select>
-
-                    <ChevronDownIcon className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      onChange={(nextCategory) => {
+                        setCategory(nextCategory);
+                        setPage(1);
+                      }}
+                      options={categories.map((item) => ({
+                        value: item.name,
+                        label: item.name,
+                      }))}
+                      placeholder="All categories"
+                      variant="filter"
+                    />
                   </div>
                 </div>
 
@@ -489,7 +582,7 @@ export default function ManageProducts() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                      {filteredProducts.map((product) => (
+                      {visibleProducts.map((product) => (
                         <tr
                           key={product.id}
                           className="transition-colors hover:bg-slate-50/70"
@@ -620,6 +713,101 @@ export default function ManageProducts() {
                   </Link>
                 </div>
               )}
+
+              {filteredProducts.length > 0 ? (
+                <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500">
+                    <label
+                      htmlFor="product-page-size"
+                      className="font-medium text-slate-600"
+                    >
+                      Rows per page
+                    </label>
+
+                    <div className="relative">
+                      <select
+                        id="product-page-size"
+                        value={pageSize}
+                        onChange={changePageSize}
+                        className="appearance-none rounded-xl border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      >
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    </div>
+
+                    <span>
+                      Showing{" "}
+                      <span className="font-semibold text-slate-700">
+                        {rangeStart}–{rangeEnd}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-slate-700">
+                        {filteredProducts.length}
+                      </span>{" "}
+                      {filteredProducts.length === 1 ? "product" : "products"}
+                    </span>
+                  </div>
+
+                  <nav
+                    aria-label="Product pagination"
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      <ChevronDownIcon className="h-3.5 w-3.5 rotate-90" />
+                      Previous
+                    </button>
+
+                    {pageNumbers.map((pageNumber) =>
+                      typeof pageNumber === "number" ? (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => goToPage(pageNumber)}
+                          aria-label={`Go to page ${pageNumber}`}
+                          aria-current={
+                            pageNumber === currentPage ? "page" : undefined
+                          }
+                          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                            pageNumber === currentPage
+                              ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ) : (
+                        <span
+                          key={pageNumber}
+                          aria-hidden="true"
+                          className="px-1 text-xs text-slate-400"
+                        >
+                          …
+                        </span>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      Next
+                      <ChevronDownIcon className="h-3.5 w-3.5 -rotate-90" />
+                    </button>
+                  </nav>
+                </div>
+              ) : null}
             </section>
 
             <p className="mt-4 text-xs text-slate-400">

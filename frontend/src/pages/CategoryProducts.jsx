@@ -3,40 +3,27 @@ import { Link, useNavigate } from "react-router-dom";
 import SiteHeader from "../components/SiteHeader.jsx";
 import SiteFooter from "../components/SiteFooter.jsx";
 import CategorySidebar from "../components/CategorySidebar.jsx";
-import ProductShowcase, {
-  ProductShowcaseSkeleton,
-} from "../components/ProductShowcase.jsx";
+import ProductSearch from "../components/ProductSearch.jsx";
+import ProductCard, {
+  ProductCardSkeleton,
+} from "../components/ProductCard.jsx";
 import Reveal from "../components/Reveal.jsx";
 import { useProducts } from "../hooks/useProducts.js";
 import {
   countProductsByCategory,
   productMatchesCategory,
 } from "../lib/productCatalog.js";
-import { ArrowRightIcon, PackageIcon } from "../components/Icons.jsx";
+import { PackageIcon } from "../components/Icons.jsx";
 
 function EmptyCategoryState({ categoryName }) {
   return (
     <div className="flex min-h-[320px] flex-col items-center justify-center border border-[#E2E5E8] bg-white px-6 py-14 text-center">
       <span className="flex h-16 w-16 items-center justify-center bg-[#F3F4F5] text-[#C7460D]">
-        <PackageIcon className="h-8 w-8" />
+        <PackageIcon className="h-10 w-10" />
       </span>
-
       <h2 className="mt-6 max-w-xl font-sans text-2xl font-bold leading-[1.15] tracking-[-0.01em] text-[#2D3239] sm:text-3xl">
         No products available in {categoryName || "this category"} yet.
       </h2>
-
-      <p className="mt-3 max-w-lg text-sm leading-7 text-[#5B6B7C]">
-        Products added to this category in the admin panel will appear here
-        automatically. Our team can also help you source a specific item.
-      </p>
-
-      <Link
-        to="/#contact"
-        className="mt-7 inline-flex items-center justify-center gap-2 bg-[#C7460D] px-5 py-3 text-[12px] font-bold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#A93A0A]"
-      >
-        Contact Our Team
-        <ArrowRightIcon className="h-4 w-4" />
-      </Link>
     </div>
   );
 }
@@ -112,21 +99,14 @@ export default function CategoryProducts({
     [products, categories],
   );
 
-  const scrollToProduct = useCallback((product) => {
-    if (!product?.slug) return;
-
-    const node = document.getElementById(`product-${product.slug}`);
-    if (!node) return;
-
-    const reducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    node.scrollIntoView({
-      behavior: reducedMotion ? "auto" : "smooth",
-      block: "start",
-    });
-  }, []);
+  const openProductDetails = useCallback(
+    (product) => {
+      if (product?.slug) {
+        navigate(`/products/${product.slug}`);
+      }
+    },
+    [navigate],
+  );
 
   const handleProductSelect = useCallback(
     (categorySlug, product) => {
@@ -135,13 +115,9 @@ export default function CategoryProducts({
         return;
       }
 
-      // Wait for React to finish the current paint before scrolling to the
-      // selected product block.
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => scrollToProduct(product));
-      });
+      openProductDetails(product);
     },
-    [category.slug, navigate, scrollToProduct],
+    [category.slug, navigate, openProductDetails],
   );
 
   const categoryHeader = (
@@ -205,34 +181,40 @@ export default function CategoryProducts({
                 onRetry={onRetryCategories}
                 productsByCategory={productsByCategory}
                 onProductSelect={handleProductSelect}
-                categoryPageStyle
               />
 
               <div
                 key={category.slug}
                 className="category-content-enter min-w-0"
               >
-                <div className="mt-5 space-y-5 md:space-y-6">
+                <ProductSearch
+                  key={category.slug}
+                  category={category}
+                  products={categoryProducts}
+                  loading={loading}
+                  error={error}
+                  onProductSelect={openProductDetails}
+                />
+
+                <div>
                   {loading ? (
-                    [0, 1].map((index) => (
-                      <ProductShowcaseSkeleton key={index} />
-                    ))
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-5">
+                      {[0, 1, 2, 3, 4, 5].map((index) => (
+                        <ProductCardSkeleton key={index} />
+                      ))}
+                    </div>
                   ) : error ? (
                     <ErrorCategoryState message={error} onRetry={reload} />
                   ) : categoryProducts.length > 0 ? (
-                    categoryProducts.map((product, index) => (
-                      <Reveal
-                        key={product.slug || product.id}
-                        variant="fade"
-                        delay={(index % 3) * 50}
-                      >
-                        <ProductShowcase
-                          product={product}
-                          products={categoryProducts}
-                          stickyMedia
-                        />
-                      </Reveal>
-                    ))
+                    <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 xl:gap-5">
+                      {categoryProducts.map((product, index) => (
+                        <li key={product.slug || product.id}>
+                          <Reveal className="h-full" delay={(index % 3) * 45}>
+                            <ProductCard product={product} />
+                          </Reveal>
+                        </li>
+                      ))}
+                    </ul>
                   ) : (
                     <EmptyCategoryState categoryName={category.name} />
                   )}
@@ -242,7 +224,6 @@ export default function CategoryProducts({
           </div>
         </section>
       </main>
-      <SiteFooter />
       <SiteFooter />
     </div>
   );

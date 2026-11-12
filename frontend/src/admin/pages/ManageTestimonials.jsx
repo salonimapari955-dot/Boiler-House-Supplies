@@ -3,12 +3,14 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import api from "../../api.js";
 import {
   CheckIcon,
+  ChevronDownIcon,
   CloseIcon,
   MailIcon,
   MenuIcon,
   PackageIcon,
   StarIcon,
 } from "../../components/Icons.jsx";
+import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
 import { clearAdminToken, getAdminToken } from "../auth.js";
 
 const iconProps = {
@@ -89,14 +91,14 @@ function TrashIcon({ className = "h-4 w-4" }) {
 
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
-  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
+  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Categories", to: "/admin/categories", icon: TagIcon },
   {
     label: "Manage Products",
     to: "/admin/manage-products",
     icon: PackageIcon,
   },
-  { label: "Categories", to: "/admin/categories", icon: TagIcon },
-  { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
+  { label: "Add Product", to: "/admin/add-product", icon: PlusIcon },
   { label: "Testimonials", to: "/admin/testimonials", icon: StarIcon },
 ];
 
@@ -146,6 +148,53 @@ function normalizeReview(review) {
   };
 }
 
+const PAGE_SIZE_OPTIONS = [10, 15, 20, 25, 30];
+const DEFAULT_PAGE_SIZE = 10;
+
+function toTimestamp(value) {
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function filterReviews(records, searchTerm, statusFilter) {
+  return records.filter((review) => {
+    const matchesStatus =
+      statusFilter === "all" ? true : review.status === statusFilter;
+    const matchesQuery = searchTerm
+      ? `${review.customerName} ${review.companyName} ${review.location} ${review.review}`
+          .toLowerCase()
+          .includes(searchTerm)
+      : true;
+
+    return matchesStatus && matchesQuery;
+  });
+}
+
+function getPageNumbers(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = [
+    ...new Set([
+      1,
+      totalPages,
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+    ]),
+  ]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((a, b) => a - b);
+
+  return pages.flatMap((page, index) => {
+    const previousPage = pages[index - 1];
+    const needsEllipsis = index > 0 && page - previousPage > 1;
+
+    return needsEllipsis ? [`ellipsis-${previousPage}`, page] : [page];
+  });
+}
+
 function formatStatus(status) {
   return (status || "pending").replace(/\b\w/g, (letter) =>
     letter.toUpperCase(),
@@ -192,6 +241,8 @@ export default function ManageTestimonials() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [busyId, setBusyId] = useState(null);
   const [confirmingId, setConfirmingId] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -218,7 +269,14 @@ export default function ManageTestimonials() {
           );
         }
 
-        setReviews(records.map(normalizeReview));
+        setReviews(
+          records
+            .map(normalizeReview)
+            .sort(
+              (a, b) =>
+                toTimestamp(b.createdAt) - toTimestamp(a.createdAt),
+            ),
+        );
       } catch (requestError) {
         if (requestError.code === "ERR_CANCELED" || signal?.aborted) return;
 
@@ -293,17 +351,24 @@ export default function ManageTestimonials() {
   };
 
   const searchTerm = query.trim().toLowerCase();
-  const filteredReviews = reviews.filter((review) => {
-    const matchesStatus =
-      statusFilter === "all" ? true : review.status === statusFilter;
-    const matchesQuery = searchTerm
-      ? `${review.customerName} ${review.companyName} ${review.location} ${review.review}`
-          .toLowerCase()
-          .includes(searchTerm)
-      : true;
+  const filteredReviews = filterReviews(reviews, searchTerm, statusFilter);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredReviews.length / pageSize),
+  );
+  const currentPage = Math.min(Math.max(page, 1), totalPages);
+  const pageStart = (currentPage - 1) * pageSize;
+  const visibleReviews = filteredReviews.slice(
+    pageStart,
+    pageStart + pageSize,
+  );
+  const pageNumbers = getPageNumbers(currentPage, totalPages);
+  const rangeStart = filteredReviews.length ? pageStart + 1 : 0;
+  const rangeEnd = Math.min(pageStart + pageSize, filteredReviews.length);
 
-    return matchesStatus && matchesQuery;
-  });
+  function goToPage(nextPage) {
+    setPage(Math.min(Math.max(nextPage, 1), totalPages));
+  }
 
   async function updateStatus(review, nextStatus) {
     if (review.status === nextStatus || busyId) return;
@@ -326,9 +391,21 @@ export default function ManageTestimonials() {
       }
 
       const updated = normalizeReview(response.data.review);
-      setReviews((current) =>
-        current.map((item) => (item.id === review.id ? updated : item)),
+      const updatedReviews = reviews.map((item) =>
+        item.id === review.id ? updated : item,
       );
+      const updatedFiltered = filterReviews(
+        updatedReviews,
+        searchTerm,
+        statusFilter,
+      );
+      const lastPage = Math.max(
+        1,
+        Math.ceil(updatedFiltered.length / pageSize),
+      );
+
+      setReviews(updatedReviews);
+      setPage((current) => Math.min(current, lastPage));
       setStatus(
         `Review from "${review.customerName}" was ${nextStatus}.`,
       );
@@ -431,9 +508,21 @@ export default function ManageTestimonials() {
         );
       }
 
-      setReviews((current) =>
-        current.filter((item) => item.id !== review.id),
+      const remainingReviews = reviews.filter(
+        (item) => item.id !== review.id,
       );
+      const remainingFiltered = filterReviews(
+        remainingReviews,
+        searchTerm,
+        statusFilter,
+      );
+      const lastPage = Math.max(
+        1,
+        Math.ceil(remainingFiltered.length / pageSize),
+      );
+
+      setReviews(remainingReviews);
+      setPage((current) => Math.min(current, lastPage));
       setConfirmingId(null);
       setStatus(`Review from "${review.customerName}" was deleted.`);
     } catch (requestError) {
@@ -446,6 +535,12 @@ export default function ManageTestimonials() {
   function clearFilters() {
     setQuery("");
     setStatusFilter("all");
+    setPage(1);
+  }
+
+  function changePageSize(event) {
+    setPageSize(Number(event.target.value));
+    setPage(1);
   }
 
   return (
@@ -531,6 +626,9 @@ export default function ManageTestimonials() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
+                    {item.to === "/admin/enquiries" ? (
+                      <EnquiriesBadge />
+                    ) : null}
                   </NavLink>
                 );
               })}
@@ -614,7 +712,10 @@ export default function ManageTestimonials() {
                     <button
                       key={tab.key}
                       type="button"
-                      onClick={() => setStatusFilter(tab.key)}
+                      onClick={() => {
+                        setStatusFilter(tab.key);
+                        setPage(1);
+                      }}
                       aria-pressed={statusFilter === tab.key}
                       className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-colors ${
                         statusFilter === tab.key
@@ -648,7 +749,10 @@ export default function ManageTestimonials() {
                       id="review-search"
                       type="search"
                       value={query}
-                      onChange={(event) => setQuery(event.target.value)}
+                      onChange={(event) => {
+                        setQuery(event.target.value);
+                        setPage(1);
+                      }}
                       placeholder="Search by customer, company or review"
                       className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2.5 pl-10 pr-3.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
                     />
@@ -690,7 +794,7 @@ export default function ManageTestimonials() {
                     </thead>
 
                     <tbody className="divide-y divide-slate-100">
-                      {filteredReviews.map((review) => {
+                      {visibleReviews.map((review) => {
                         const isBusy = busyId === review.id;
 
                         return (
@@ -889,6 +993,101 @@ export default function ManageTestimonials() {
                   </p>
                 </div>
               )}
+
+              {filteredReviews.length > 0 ? (
+                <div className="flex flex-col gap-4 border-t border-slate-100 px-4 py-4 sm:px-5 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-slate-500">
+                    <label
+                      htmlFor="review-page-size"
+                      className="font-medium text-slate-600"
+                    >
+                      Rows per page
+                    </label>
+
+                    <div className="relative">
+                      <select
+                        id="review-page-size"
+                        value={pageSize}
+                        onChange={changePageSize}
+                        className="appearance-none rounded-xl border border-slate-200 bg-white py-1.5 pl-3 pr-8 text-xs font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      >
+                        {PAGE_SIZE_OPTIONS.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDownIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    </div>
+
+                    <span>
+                      Showing{" "}
+                      <span className="font-semibold text-slate-700">
+                        {rangeStart}–{rangeEnd}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-slate-700">
+                        {filteredReviews.length}
+                      </span>{" "}
+                      {filteredReviews.length === 1 ? "review" : "reviews"}
+                    </span>
+                  </div>
+
+                  <nav
+                    aria-label="Review pagination"
+                    className="flex flex-wrap items-center gap-1.5"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      <ChevronDownIcon className="h-3.5 w-3.5 rotate-90" />
+                      Previous
+                    </button>
+
+                    {pageNumbers.map((pageNumber) =>
+                      typeof pageNumber === "number" ? (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => goToPage(pageNumber)}
+                          aria-label={`Go to page ${pageNumber}`}
+                          aria-current={
+                            pageNumber === currentPage ? "page" : undefined
+                          }
+                          className={`inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2 text-xs font-semibold transition-colors ${
+                            pageNumber === currentPage
+                              ? "border-slate-900 bg-slate-900 text-white shadow-md shadow-slate-900/20"
+                              : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                          }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ) : (
+                        <span
+                          key={pageNumber}
+                          aria-hidden="true"
+                          className="px-1 text-xs text-slate-400"
+                        >
+                          …
+                        </span>
+                      ),
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-700"
+                    >
+                      Next
+                      <ChevronDownIcon className="h-3.5 w-3.5 -rotate-90" />
+                    </button>
+                  </nav>
+                </div>
+              ) : null}
             </section>
           </main>
         </div>

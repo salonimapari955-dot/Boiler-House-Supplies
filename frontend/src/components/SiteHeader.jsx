@@ -29,10 +29,17 @@ const navigation = [
     ],
   },
   {
+    label: "Categories",
+    icon: "categories",
+    to: "/categories",
+    match: (pathname) => pathname === "/categories",
+  },
+  {
     label: "Products",
     icon: "package",
-    to: "/products",
-    match: (pathname) => pathname.startsWith("/products"),
+    to: "/products/grate-bar",
+    match: (pathname) =>
+      pathname === "/products" || pathname.startsWith("/products/"),
   },
   {
     label: "Contact Us",
@@ -55,6 +62,14 @@ function NavigationIcon({ name }) {
         <path d="M5 20v-1a7 7 0 0 1 14 0v1z" />
         <path d="M5.2 6.5a2.5 2.5 0 0 0 0 5M2 18v-1a5 5 0 0 1 2-4" />
         <path d="M18.8 6.5a2.5 2.5 0 0 1 0 5M22 18v-1a5 5 0 0 0-2-4" />
+      </>
+    ),
+    categories: (
+      <>
+        <rect x="3.5" y="3.5" width="7" height="7" rx="1" />
+        <rect x="13.5" y="3.5" width="7" height="7" rx="1" />
+        <rect x="3.5" y="13.5" width="7" height="7" rx="1" />
+        <rect x="13.5" y="13.5" width="7" height="7" rx="1" />
       </>
     ),
     package: (
@@ -114,7 +129,7 @@ export default function SiteHeader() {
         className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-2.5"
         aria-label="Main navigation"
       >
-        <div className="flex min-w-0 items-center gap-3 sm:gap-4 lg:gap-6">
+        <div className="flex min-w-0 translate-x-2 items-center gap-3 sm:gap-4 lg:gap-6">
           <Link
             to="/"
             onClick={() => setMenuOpen(false)}
@@ -138,22 +153,6 @@ export default function SiteHeader() {
         </div>
 
         <div className="hidden items-center gap-8 lg:flex">
-          <a
-            href={trustSealCertificate}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="View IndiaMART TrustSEAL certificate (opens in a new tab)"
-            title="View IndiaMART TrustSEAL certificate (opens in a new tab)"
-            className="group shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            <img
-              src="/assets/indiamart-trustseal.png"
-              alt="IndiaMART TrustSEAL certified supplier"
-              width="102"
-              height="90"
-              className="h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-            />
-          </a>
           {navigation.map((item) => {
             const active = item.match(location.pathname, location.hash);
             const hasChildren = Boolean(item.children?.length);
@@ -210,9 +209,6 @@ export default function SiteHeader() {
               </div>
             );
           })}
-        </div>
-
-        <div className="flex items-center gap-2 lg:hidden">
           <a
             href={trustSealCertificate}
             target="_blank"
@@ -226,9 +222,12 @@ export default function SiteHeader() {
               alt="IndiaMART TrustSEAL certified supplier"
               width="102"
               height="90"
-              className="h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              className="h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
           </a>
+        </div>
+
+        <div className="flex translate-x-2 items-center gap-2 lg:hidden">
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -370,6 +369,22 @@ export default function SiteHeader() {
                 );
               })}
             </nav>
+            <a
+              href={trustSealCertificate}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View IndiaMART TrustSEAL certificate (opens in a new tab)"
+              title="View IndiaMART TrustSEAL certificate (opens in a new tab)"
+              className="relative z-10 mt-4 flex justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <img
+                src="/assets/indiamart-trustseal.png"
+                alt="IndiaMART TrustSEAL certified supplier"
+                width="102"
+                height="90"
+                className="h-12 w-auto object-contain"
+              />
+            </a>
           </div>
         </div>
       )}

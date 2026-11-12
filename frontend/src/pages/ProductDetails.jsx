@@ -1,25 +1,25 @@
 import { useMemo } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import SiteHeader from "./components/SiteHeader.jsx";
-import SiteFooter from "./components/SiteFooter.jsx";
-import CategorySidebar from "./components/CategorySidebar.jsx";
+import SiteHeader from "../components/SiteHeader.jsx";
+import SiteFooter from "../components/SiteFooter.jsx";
+import CategorySidebar from "../components/CategorySidebar.jsx";
 import ProductShowcase, {
   ProductShowcaseHeader,
   ProductShowcaseSkeleton,
-} from "./components/ProductShowcase.jsx";
-import { useCategories } from "./hooks/useCategories.js";
-import { useProducts } from "./hooks/useProducts.js";
+} from "../components/ProductShowcase.jsx";
+import { useCategories } from "../hooks/useCategories.js";
+import { useProducts } from "../hooks/useProducts.js";
 import {
   countProductsByCategory,
   makeSlug,
   productMatchesCategory,
-} from "./lib/productCatalog.js";
-import { getCategoryBySlug } from "./data/categories.js";
-import CategoryProducts from "./pages/CategoryProducts.jsx";
+} from "../lib/productCatalog.js";
+import { getCategoryBySlug } from "../data/categories.js";
+import CategoryProducts from "./CategoryProducts.jsx";
 import {
   ArrowRightIcon,
   PackageIcon,
-} from "./components/Icons.jsx";
+} from "../components/Icons.jsx";
 
 function ProductLoading() {
   return (
@@ -260,9 +260,8 @@ function CatalogProductDetail({
                 />
               </div>
 
-              <div className="grid items-start gap-4 md:grid-cols-[270px_minmax(0,1fr)] md:gap-4 lg:gap-5 xl:gap-6">
+              <div className="grid items-start gap-5 md:grid-cols-[220px_minmax(0,1fr)] md:gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[290px_minmax(0,1fr)] xl:gap-7">
                 <CategorySidebar
-                  key={activeCategory?.slug || "all"}
                   categories={categories}
                   counts={counts}
                   activeSlug={activeCategory?.slug}
@@ -270,11 +269,16 @@ function CatalogProductDetail({
                   error={categoriesError}
                   onRetry={onRetryCategories}
                   productsByCategory={productsByCategory}
-                  activeProductSlug={product.slug}
-                  productDetailStyle
-                  onProductSelect={(_categorySlug, nextProduct) =>
-                    navigate(`/products/${nextProduct.slug}`)
-                  }
+                  onProductSelect={(categorySlug, nextProduct) => {
+                    if (categorySlug && categorySlug !== activeCategory?.slug) {
+                      navigate(`/products/${categorySlug}`);
+                      return;
+                    }
+
+                    if (nextProduct?.slug) {
+                      navigate(`/products/${nextProduct.slug}`);
+                    }
+                  }}
                 />
 
                 <div className="min-w-0">

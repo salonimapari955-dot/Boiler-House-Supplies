@@ -3,8 +3,9 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import "./index.css";
 import App from "./App.jsx";
+import Categories from "./pages/Categories.jsx";
 import Products from "./pages/Products.jsx";
-import ProductDetails from "./ProductDetails.jsx";
+import ProductDetails from "./pages/ProductDetails.jsx";
 import CompanyBrief from "./pages/CompanyBrief.jsx";
 import Testimonials from "./pages/Testimonials.jsx";
 import Contact from "./pages/Contact.jsx";
@@ -26,6 +27,7 @@ createRoot(document.getElementById("root")).render(
       <AdminDataProvider>
         <Routes>
           <Route path="/" element={<App />} />
+          <Route path="/categories" element={<Categories />} />
           <Route path="/products" element={<Products />} />
           <Route path="/products/:slug" element={<ProductDetails />} />
           <Route path="/about/company-brief" element={<CompanyBrief />} />
