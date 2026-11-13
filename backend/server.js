@@ -10,6 +10,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const enquiryRoutes = require("./routes/enquiryRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const brochureAuthRoutes = require("./routes/brochureAuthRoutes");
+const specificationRoutes = require("./routes/specificationRoutes");
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/enquiries", enquiryRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/brochure-auth", brochureAuthRoutes);
+app.use("/api/specifications", specificationRoutes);
 
 // Home route
 app.get("/", (req, res) => {

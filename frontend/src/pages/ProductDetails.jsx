@@ -24,10 +24,6 @@ import {
 function ProductLoading() {
   return (
     <div className="mx-auto w-full max-w-[1320px] px-4 py-4 sm:px-6 md:py-5 lg:px-8">
-      <div className="mb-5">
-        <div className="h-[41px] w-full animate-pulse bg-[#f8f8f8]" />
-        <div className="mt-2 h-6 w-full animate-pulse bg-[#f0f0f0]" />
-      </div>
       <div className="grid items-start gap-4 md:grid-cols-[300px_minmax(0,1fr)] md:gap-4 lg:gap-5 xl:gap-6">
         <div className="hidden overflow-hidden rounded-sm border border-[#E2E5E8] bg-[#F3F4F5] md:block">
           <div className="h-9 animate-pulse border-b border-[#E2E5E8] bg-[#ECEEF0]" />
@@ -40,6 +36,10 @@ function ProductLoading() {
         </div>
 
         <div className="min-w-0">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="h-[41px] flex-1 animate-pulse bg-[#f8f8f8]" />
+            <div className="h-[34px] w-[165px] animate-pulse bg-[#f0f0f0]" />
+          </div>
           <ProductShowcaseSkeleton showHeader={false} />
         </div>
       </div>
@@ -252,14 +252,6 @@ function CatalogProductDetail({
         {!loading && !loadFailed && product && (
           <section className="py-4 md:py-5">
             <div className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8">
-              <div className="mb-5">
-                <ProductShowcaseHeader
-                  product={product}
-                  products={activeCategoryProducts}
-                  headingLevel="h1"
-                />
-              </div>
-
               <div className="grid items-start gap-5 md:grid-cols-[220px_minmax(0,1fr)] md:gap-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[290px_minmax(0,1fr)] xl:gap-7">
                 <CategorySidebar
                   categories={categories}
@@ -282,6 +274,13 @@ function CatalogProductDetail({
                 />
 
                 <div className="min-w-0">
+                  <div className="mb-5">
+                    <ProductShowcaseHeader
+                      product={product}
+                      products={activeCategoryProducts}
+                      headingLevel="h1"
+                    />
+                  </div>
                   <ProductShowcase
                     key={product.id || product.slug}
                     product={product}

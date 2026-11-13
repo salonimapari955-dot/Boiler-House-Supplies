@@ -228,6 +228,22 @@ export default function SiteHeader() {
         </div>
 
         <div className="flex translate-x-2 items-center gap-2 lg:hidden">
+          <a
+            href={trustSealCertificate}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View IndiaMART TrustSEAL certificate (opens in a new tab)"
+            title="View IndiaMART TrustSEAL certificate (opens in a new tab)"
+            className="inline-flex shrink-0 items-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <img
+              src="/assets/indiamart-trustseal.png"
+              alt="IndiaMART TrustSEAL certified supplier"
+              width="102"
+              height="90"
+              className="h-10 w-auto object-contain"
+            />
+          </a>
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -369,22 +385,6 @@ export default function SiteHeader() {
                 );
               })}
             </nav>
-            <a
-              href={trustSealCertificate}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View IndiaMART TrustSEAL certificate (opens in a new tab)"
-              title="View IndiaMART TrustSEAL certificate (opens in a new tab)"
-              className="relative z-10 mt-4 flex justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <img
-                src="/assets/indiamart-trustseal.png"
-                alt="IndiaMART TrustSEAL certified supplier"
-                width="102"
-                height="90"
-                className="h-12 w-auto object-contain"
-              />
-            </a>
           </div>
         </div>
       )}

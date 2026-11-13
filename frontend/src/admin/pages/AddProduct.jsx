@@ -1,5 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, useNavigate, useParams } from "react-router-dom";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -14,8 +30,13 @@ import { getPlainText } from "../../lib/richText.js";
 import { getYouTubeVideoId } from "../../lib/youtube.js";
 import RichTextEditor from "../components/RichTextEditor.jsx";
 import SearchableCategorySelect from "../components/SearchableCategorySelect.jsx";
+import SpecificationMultiSelect from "../components/SpecificationMultiSelect.jsx";
 import EnquiriesBadge from "../components/EnquiriesBadge.jsx";
 import { clearAdminToken, getAdminToken } from "../auth.js";
+import {
+  DEFAULT_SPECIFICATION_NAMES,
+  mergeSpecificationNames,
+} from "../../lib/specificationCatalog.js";
 
 const iconProps = {
   fill: "none",
@@ -83,6 +104,135 @@ function FileIcon({ className = "h-5 w-5" }) {
   );
 }
 
+function DragHandleIcon({ className = "h-4 w-4" }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} {...iconProps}>
+      <circle cx="9" cy="6" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="6" r="1" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="18" r="1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="18" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SortableSpecificationRow({
+  specification,
+  index,
+  rowErrors = {},
+  disabled = false,
+  onValueChange,
+  onRemove,
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    setActivatorNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: specification.id, disabled });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+      className={`grid gap-2 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)_auto] ${
+        isDragging ? "relative z-10" : ""
+      }`}
+    >
+      <div>
+        <div className="flex min-h-[46px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100/70 px-2 text-sm font-medium text-slate-700">
+          <button
+            ref={setActivatorNodeRef}
+            type="button"
+            {...attributes}
+            {...listeners}
+            disabled={disabled}
+            aria-label={`Reorder ${
+              specification.name || `specification ${index + 1}`
+            }`}
+            title="Drag to reorder"
+            className={`flex h-8 w-7 shrink-0 touch-none select-none items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900/30 disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+          >
+            <DragHandleIcon className="h-4 w-4" />
+          </button>
+
+          <span className="truncate" title={specification.name}>
+            {specification.name || "Unnamed specification"}
+          </span>
+        </div>
+
+        {rowErrors?.name ? (
+          <p
+            id={`specification-name-error-${specification.id}`}
+            role="alert"
+            className="mt-1 text-xs text-rose-600"
+          >
+            {rowErrors.name}
+          </p>
+        ) : null}
+      </div>
+
+      <div>
+        <label
+          htmlFor={`specification-value-${specification.id}`}
+          className="sr-only"
+        >
+          {specification.name || `Specification ${index + 1}`} value
+        </label>
+
+        <input
+          id={`specification-value-${specification.id}`}
+          type="text"
+          placeholder={`Enter ${specification.name || "specification"} value`}
+          value={specification.value}
+          onChange={(event) =>
+            onValueChange(specification.id, "value", event.target.value)
+          }
+          aria-invalid={Boolean(rowErrors?.value)}
+          aria-describedby={
+            rowErrors?.value
+              ? `specification-value-error-${specification.id}`
+              : undefined
+          }
+          className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
+            rowErrors?.value
+              ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+              : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
+          }`}
+        />
+
+        {rowErrors?.value ? (
+          <p
+            id={`specification-value-error-${specification.id}`}
+            role="alert"
+            className="mt-1 text-xs text-rose-600"
+          >
+            {rowErrors.value}
+          </p>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onRemove(specification.id)}
+        aria-label={`Remove ${specification.name || "specification"}`}
+        className="flex h-[46px] w-[46px] items-center justify-center justify-self-start rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+      >
+        <CloseIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 const navigation = [
   { label: "Dashboard", to: "/admin/dashboard", icon: GridIcon },
   { label: "Enquiries", to: "/admin/enquiries", icon: MailIcon },
@@ -110,7 +260,7 @@ function inputValue(value) {
   return value === null || value === undefined ? "" : String(value);
 }
 
-const UNIT_OPTIONS = ["Piece", "Kg", "Set", "Meter", "Litre", "Ton", "Unit"];
+const UNIT_OPTIONS = ["Piece", "Kg"];
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const MAX_BROCHURE_SIZE = 10 * 1024 * 1024;
@@ -182,6 +332,12 @@ export default function AddProduct() {
   const nextImageIdRef = useRef(1);
   const nextSpecIdRef = useRef(1);
   const nextYoutubeIdRef = useRef(1);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [categories, setCategories] = useState([]);
@@ -193,15 +349,23 @@ export default function AddProduct() {
   const [brochure, setBrochure] = useState(null);
   const [storedBrochure, setStoredBrochure] = useState("");
   const [brochureRemoved, setBrochureRemoved] = useState(false);
-  const [specifications, setSpecifications] = useState([
-    { id: 0, name: "", value: "" },
-  ]);
+  const [specifications, setSpecifications] = useState([]);
+  const [specificationNames, setSpecificationNames] = useState(
+    DEFAULT_SPECIFICATION_NAMES,
+  );
+  const [specificationsLoading, setSpecificationsLoading] = useState(true);
+  const [specificationsError, setSpecificationsError] = useState("");
   const [youtubeVideos, setYoutubeVideos] = useState([{ id: 0, url: "" }]);
   const [status, setStatus] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [loadingProduct, setLoadingProduct] = useState(isEditing);
   const [productLoadError, setProductLoadError] = useState("");
+
+  const specificationIds = useMemo(
+    () => specifications.map((specification) => specification.id),
+    [specifications],
+  );
 
   const loadCategories = useCallback(
     async (signal) => {
@@ -241,6 +405,47 @@ export default function AddProduct() {
 
     return () => controller.abort();
   }, [loadCategories]);
+
+  const loadSpecificationNames = useCallback(
+    async (signal, { silent = false } = {}) => {
+      try {
+        const response = await api.get("/specifications", { signal });
+        const savedNames = Array.isArray(response.data.specifications)
+          ? response.data.specifications.map(
+              (specification) => specification?.name || "",
+            )
+          : [];
+
+        setSpecificationNames(
+          mergeSpecificationNames(DEFAULT_SPECIFICATION_NAMES, savedNames),
+        );
+        setSpecificationsError("");
+      } catch (requestError) {
+        if (requestError.code === "ERR_CANCELED" || signal?.aborted) {
+          return;
+        }
+
+        if (!silent) {
+          setSpecificationsError(
+            requestError.response?.data?.message ||
+              "Unable to sync saved specification names. You can still select the default names.",
+          );
+        }
+      } finally {
+        if (!signal?.aborted) setSpecificationsLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadSpecificationNames(controller.signal);
+
+    return () => controller.abort();
+  }, [loadSpecificationNames]);
 
   function handleRetryCategories() {
     setCategoriesLoading(true);
@@ -296,7 +501,8 @@ export default function AddProduct() {
           })),
         );
 
-        const storedBrochurePath = product.brochurePdf || product.brochure || "";
+        const storedBrochurePath =
+          product.brochurePdf || product.brochure || "";
 
         setBrochure(null);
         setStoredBrochure(
@@ -319,7 +525,7 @@ export default function AddProduct() {
                 name: specification.name || "",
                 value: specification.value || "",
               }))
-            : [{ id: nextSpecIdRef.current++, name: "", value: "" }],
+            : [],
         );
 
         const productVideos = Array.isArray(product.youtubeVideos)
@@ -515,9 +721,7 @@ export default function AddProduct() {
   }
 
   function removeYoutubeVideo(id) {
-    setYoutubeVideos((current) =>
-      current.filter((video) => video.id !== id),
-    );
+    setYoutubeVideos((current) => current.filter((video) => video.id !== id));
 
     setErrors((current) => {
       if (!current.youtubeVideos?.[id]) return current;
@@ -548,11 +752,90 @@ export default function AddProduct() {
     });
   }
 
-  function addSpecification() {
-    setSpecifications((current) => [
-      ...current,
-      { id: nextSpecIdRef.current++, name: "", value: "" },
-    ]);
+  function toggleSpecification(name) {
+    const trimmed = typeof name === "string" ? name.trim() : "";
+
+    if (!trimmed) return;
+
+    const key = trimmed.toLowerCase();
+    const exists = specifications.some(
+      (specification) => specification.name.trim().toLowerCase() === key,
+    );
+
+    if (exists) {
+      setSpecifications((current) =>
+        current.filter(
+          (specification) =>
+            specification.name.trim().toLowerCase() !== key,
+        ),
+      );
+    } else {
+      const id = nextSpecIdRef.current++;
+
+      setSpecifications((current) => [
+        ...current,
+        { id, name: trimmed, value: "" },
+      ]);
+    }
+
+    setStatus("");
+    setSubmitError("");
+    setErrors((current) => {
+      if (!current.specifications) return current;
+      return { ...current, specifications: {} };
+    });
+  }
+
+  async function createSpecification(name) {
+    const trimmed = name.trim();
+    const token = getAdminToken();
+
+    if (!token) {
+      clearAdminToken();
+      navigate("/admin/login", { replace: true });
+      throw new Error("Your session expired. Please sign in again.");
+    }
+
+    try {
+      const response = await api.post(
+        "/specifications",
+        { name: trimmed },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+
+      const data = response.data || {};
+      const savedName = data.specification?.name?.trim() || trimmed;
+
+      setSpecificationNames((current) =>
+        mergeSpecificationNames(current, [savedName]),
+      );
+      setSpecificationsError("");
+
+      // Reload the complete list from MongoDB so the dropdown also reflects
+      // any names added in other admin sessions. A refresh failure must not
+      // hide the fact that this specification was saved successfully.
+      await loadSpecificationNames(undefined, { silent: true });
+
+      return {
+        name: savedName,
+        existing: Boolean(data.existing),
+        message: data.message || "",
+      };
+    } catch (requestError) {
+      if (requestError.response?.status === 401) {
+        clearAdminToken();
+        navigate("/admin/login", { replace: true });
+        throw new Error("Your session expired. Please sign in again.", {
+          cause: requestError,
+        });
+      }
+
+      throw new Error(
+        requestError.response?.data?.message ||
+          "Unable to save the specification. Please try again.",
+        { cause: requestError },
+      );
+    }
   }
 
   function removeSpecification(id) {
@@ -568,6 +851,26 @@ export default function AddProduct() {
 
       return { ...current, specifications: nextSpecificationErrors };
     });
+  }
+
+  function handleSpecificationDragEnd({ active, over }) {
+    if (!over || active.id === over.id) return;
+
+    setSpecifications((current) => {
+      const oldIndex = current.findIndex(
+        (specification) => specification.id === active.id,
+      );
+      const newIndex = current.findIndex(
+        (specification) => specification.id === over.id,
+      );
+
+      if (oldIndex === -1 || newIndex === -1) return current;
+
+      return arrayMove(current, oldIndex, newIndex);
+    });
+
+    setStatus("");
+    setSubmitError("");
   }
 
   function handleSpecificationChange(id, field, value) {
@@ -628,10 +931,11 @@ export default function AddProduct() {
       }));
 
     if (productSpecifications.length) {
-      formData.append(
-        "specifications",
-        JSON.stringify(productSpecifications),
-      );
+      formData.append("specifications", JSON.stringify(productSpecifications));
+    } else if (isEditing) {
+      // Always send the array when editing so removing every specification
+      // clears the saved rows in MongoDB instead of leaving the old ones.
+      formData.append("specifications", JSON.stringify([]));
     }
 
     const [mainImage, ...galleryImages] = images;
@@ -735,10 +1039,10 @@ export default function AddProduct() {
       const row = {};
 
       if (!name) {
-        row.name = "Enter a specification name.";
+        row.name = "Select a specification name.";
       }
 
-      if (!value) {
+      if (name && !value) {
         row.value = "Enter a specification value.";
       }
 
@@ -788,7 +1092,7 @@ export default function AddProduct() {
 
     if (next.specifications) {
       const firstId = Object.keys(next.specifications)[0];
-      document.getElementById(`specification-name-${firstId}`)?.focus();
+      document.getElementById(`specification-value-${firstId}`)?.focus();
       setStatus("");
       return;
     }
@@ -828,9 +1132,7 @@ export default function AddProduct() {
         const savedBrochure = response.data.product?.brochurePdf || "";
 
         setBrochure(null);
-        setStoredBrochure(
-          savedBrochure ? storedImageUrl(savedBrochure) : "",
-        );
+        setStoredBrochure(savedBrochure ? storedImageUrl(savedBrochure) : "");
         setBrochureRemoved(false);
 
         if (brochureInputRef.current) brochureInputRef.current.value = "";
@@ -844,7 +1146,7 @@ export default function AddProduct() {
         setBrochure(null);
         setStoredBrochure("");
         setBrochureRemoved(false);
-        setSpecifications([{ id: 0, name: "", value: "" }]);
+        setSpecifications([]);
         setYoutubeVideos([{ id: nextYoutubeIdRef.current++, url: "" }]);
         objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
         objectUrlsRef.current.clear();
@@ -878,7 +1180,7 @@ export default function AddProduct() {
     setBrochure(null);
     setStoredBrochure("");
     setBrochureRemoved(false);
-    setSpecifications([{ id: 0, name: "", value: "" }]);
+    setSpecifications([]);
     setYoutubeVideos([{ id: nextYoutubeIdRef.current++, url: "" }]);
     setStatus("");
     setSubmitError("");
@@ -972,9 +1274,7 @@ export default function AddProduct() {
                   >
                     <Icon className="h-4 w-4 shrink-0" />
                     <span>{item.label}</span>
-                    {item.to === "/admin/enquiries" ? (
-                      <EnquiriesBadge />
-                    ) : null}
+                    {item.to === "/admin/enquiries" ? <EnquiriesBadge /> : null}
                   </NavLink>
                 );
               })}
@@ -1069,789 +1369,705 @@ export default function AddProduct() {
                 </button>
               </div>
             ) : (
-            <form
-              className="mt-6 rounded-3xl border border-white/80 bg-white/85 p-5 shadow-2xl shadow-slate-300/40 backdrop-blur-sm sm:p-8"
-              noValidate
-              onSubmit={handleSubmit}
-            >
-              <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="product-name"
-                    className="block text-xs font-medium text-slate-700"
-                  >
-                    Product Name
-                    <span className="ml-0.5 text-rose-500">*</span>
-                  </label>
-
-                  <input
-                    id="product-name"
-                    name="name"
-                    type="text"
-                    placeholder="Enter product name"
-                    value={values.name}
-                    onChange={handleChange}
-                    aria-invalid={Boolean(errors.name)}
-                    aria-describedby={
-                      errors.name ? "product-name-error" : undefined
-                    }
-                    className={`mt-1.5 w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
-                      errors.name
-                        ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                        : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-                    }`}
-                  />
-
-                  {errors.name ? (
-                    <p
-                      id="product-name-error"
-                      role="alert"
-                      className="mt-1 text-xs text-rose-600"
+              <form
+                className="mt-6 rounded-3xl border border-white/80 bg-white/85 p-5 shadow-2xl shadow-slate-300/40 backdrop-blur-sm sm:p-8"
+                noValidate
+                onSubmit={handleSubmit}
+              >
+                <div className="grid gap-5 md:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="product-name"
+                      className="block text-xs font-medium text-slate-700"
                     >
-                      {errors.name}
-                    </p>
-                  ) : null}
-                </div>
+                      Product Name
+                      <span className="ml-0.5 text-rose-500">*</span>
+                    </label>
 
-                <div>
-                  <label
-                    htmlFor="product-category"
-                    className="block text-xs font-medium text-slate-700"
-                  >
-                    Category
-                    <span className="ml-0.5 text-rose-500">*</span>
-                  </label>
-
-                  <div className="mt-1.5">
-                    <SearchableCategorySelect
-                      id="product-category"
-                      value={values.category}
-                      onChange={(next) =>
-                        handleChange({
-                          target: { name: "category", value: next },
-                        })
-                      }
-                      options={categories.map((category) => ({
-                        value: String(category._id),
-                        label: category.name,
-                      }))}
-                      placeholder={
-                        categoriesLoading
-                          ? "Loading categories..."
-                          : categories.length
-                            ? "Select a category"
-                            : "No categories available"
-                      }
-                      disabled={
-                        categoriesLoading || Boolean(categoriesError)
-                      }
-                      invalid={Boolean(errors.category)}
-                      describedBy={
-                        errors.category ? "product-category-error" : undefined
-                      }
-                      variant="form"
-                    />
-                  </div>
-
-                  {categoriesError ? (
-                    <div
-                      role="alert"
-                      className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-rose-600"
-                    >
-                      <span>{categoriesError}</span>
-                      <button
-                        type="button"
-                        onClick={handleRetryCategories}
-                        className="font-semibold underline underline-offset-2 transition-colors hover:text-rose-700"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : null}
-
-                  {errors.category ? (
-                    <p
-                      id="product-category-error"
-                      role="alert"
-                      className="mt-1 text-xs text-rose-600"
-                    >
-                      {errors.category}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="product-price"
-                    className="block text-xs font-medium text-slate-700"
-                  >
-                    Price
-                    <span className="ml-1 text-xs font-normal text-slate-400">
-                      (optional)
-                    </span>
-                  </label>
-
-                  <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_112px] gap-2">
-                    <div className="relative">
-                      <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400">
-                        ₹
-                      </span>
-
-                      <input
-                        id="product-price"
-                        name="price"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        inputMode="decimal"
-                        placeholder="0.00"
-                        value={values.price}
-                        onChange={handleChange}
-                        aria-invalid={Boolean(errors.price)}
-                        aria-describedby={
-                          errors.price ? "product-price-error" : undefined
-                        }
-                        className={`w-full rounded-xl border bg-slate-50/70 py-3 pl-8 pr-3.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
-                          errors.price
-                            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                            : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-                        }`}
-                      />
-                    </div>
-
-                    <div className="relative">
-                      <label htmlFor="product-price-unit" className="sr-only">
-                        Price unit
-                      </label>
-
-                      <select
-                        id="product-price-unit"
-                        name="priceUnit"
-                        value={values.priceUnit}
-                        onChange={handleChange}
-                        className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-3.5 pr-9 text-sm text-slate-800 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
-                      >
-                        {UNIT_OPTIONS.map((unit) => (
-                          <option key={unit} value={unit}>
-                            {unit}
-                          </option>
-                        ))}
-                      </select>
-
-                      <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    </div>
-                  </div>
-
-                  {errors.price ? (
-                    <p
-                      id="product-price-error"
-                      role="alert"
-                      className="mt-1 text-xs text-rose-600"
-                    >
-                      {errors.price}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="product-moq"
-                    className="block text-xs font-medium text-slate-700"
-                  >
-                    Minimum Order Quantity
-                    <span className="ml-0.5 text-rose-500">*</span>
-                  </label>
-
-                  <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_112px] gap-2">
                     <input
-                      id="product-moq"
-                      name="moq"
-                      type="number"
-                      min="1"
-                      step="1"
-                      inputMode="numeric"
-                      placeholder="e.g. 10"
-                      value={values.moq}
+                      id="product-name"
+                      name="name"
+                      type="text"
+                      placeholder="Enter product name"
+                      value={values.name}
                       onChange={handleChange}
-                      aria-invalid={Boolean(errors.moq)}
+                      aria-invalid={Boolean(errors.name)}
                       aria-describedby={
-                        errors.moq ? "product-moq-error" : undefined
+                        errors.name ? "product-name-error" : undefined
                       }
-                      className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
-                        errors.moq
+                      className={`mt-1.5 w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
+                        errors.name
                           ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
                           : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
                       }`}
                     />
 
-                    <div className="relative">
-                      <label htmlFor="product-moq-unit" className="sr-only">
-                        MOQ unit
-                      </label>
-
-                      <select
-                        id="product-moq-unit"
-                        name="moqUnit"
-                        value={values.moqUnit}
-                        onChange={handleChange}
-                        className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-3.5 pr-9 text-sm text-slate-800 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
+                    {errors.name ? (
+                      <p
+                        id="product-name-error"
+                        role="alert"
+                        className="mt-1 text-xs text-rose-600"
                       >
-                        {UNIT_OPTIONS.map((unit) => (
-                          <option key={unit} value={unit}>
-                            {unit}
-                          </option>
-                        ))}
-                      </select>
-
-                      <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    </div>
+                        {errors.name}
+                      </p>
+                    ) : null}
                   </div>
 
-                  {errors.moq ? (
-                    <p
-                      id="product-moq-error"
-                      role="alert"
-                      className="mt-1 text-xs text-rose-600"
-                    >
-                      {errors.moq}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="product-description"
-                    className="block text-xs font-medium text-slate-700"
-                  >
-                    Product Description
-                    <span className="ml-0.5 text-rose-500">*</span>
-                  </label>
-
-                  <RichTextEditor
-                    id="product-description"
-                    value={values.description}
-                    onChange={handleDescriptionChange}
-                    placeholder="Describe the product, material, size or application."
-                    invalid={Boolean(errors.description)}
-                    describedBy={
-                      errors.description
-                        ? "product-description-error"
-                        : undefined
-                    }
-                  />
-
-                  {errors.description ? (
-                    <p
-                      id="product-description-error"
-                      role="alert"
-                      className="mt-1 text-xs text-rose-600"
-                    >
-                      {errors.description}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="text-sm font-semibold text-slate-900">
-                      Product Images
+                    <label
+                      htmlFor="product-category"
+                      className="block text-xs font-medium text-slate-700"
+                    >
+                      Category
                       <span className="ml-0.5 text-rose-500">*</span>
-                    </h2>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Upload one or more images. JPG, PNG or WebP up to 5 MB
-                      each.
-                    </p>
-                  </div>
+                    </label>
 
-                  {images.length ? (
-                    <button
-                      type="button"
-                      onClick={() => imageInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                    >
-                      <PlusIcon className="h-3.5 w-3.5" />
-                      Add more
-                    </button>
-                  ) : null}
-                </div>
+                    <div className="mt-1.5">
+                      <SearchableCategorySelect
+                        id="product-category"
+                        value={values.category}
+                        onChange={(next) =>
+                          handleChange({
+                            target: { name: "category", value: next },
+                          })
+                        }
+                        options={categories.map((category) => ({
+                          value: String(category._id),
+                          label: category.name,
+                        }))}
+                        placeholder={
+                          categoriesLoading
+                            ? "Loading categories..."
+                            : categories.length
+                              ? "Select a category"
+                              : "No categories available"
+                        }
+                        disabled={categoriesLoading || Boolean(categoriesError)}
+                        invalid={Boolean(errors.category)}
+                        describedBy={
+                          errors.category ? "product-category-error" : undefined
+                        }
+                        variant="form"
+                      />
+                    </div>
 
-                <input
-                  ref={imageInputRef}
-                  id="product-images"
-                  name="images"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="sr-only"
-                  aria-label="Upload product images"
-                  aria-describedby={
-                    errors.images ? "product-images-error" : undefined
-                  }
-                />
-
-                {images.length ? (
-                  <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                    {images.map((image, index) => (
+                    {categoriesError ? (
                       <div
-                        key={image.id}
-                        className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                        role="alert"
+                        className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-rose-600"
                       >
-                        <div className="relative">
-                          <img
-                            src={image.url}
-                            alt={`Product image ${index + 1}`}
-                            className="h-32 w-full object-cover"
-                          />
-
-                          <button
-                            type="button"
-                            onClick={() => removeImage(image.id)}
-                            aria-label={`Remove image ${index + 1}`}
-                            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-sm transition-colors hover:bg-white hover:text-slate-900"
-                          >
-                            <CloseIcon className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-
-                        <p className="truncate px-2 py-1.5 text-[10px] text-slate-500">
-                          {image.file?.name || "Current image"}
-                        </p>
+                        <span>{categoriesError}</span>
+                        <button
+                          type="button"
+                          onClick={handleRetryCategories}
+                          className="font-semibold underline underline-offset-2 transition-colors hover:text-rose-700"
+                        >
+                          Retry
+                        </button>
                       </div>
-                    ))}
+                    ) : null}
 
-                    <button
-                      type="button"
-                      onClick={() => imageInputRef.current?.click()}
-                      className="flex min-h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 p-3 text-center transition-colors hover:border-slate-400 hover:bg-slate-50"
-                    >
-                      <PlusIcon className="h-5 w-5 text-slate-900" />
-                      <span className="mt-1.5 text-xs font-medium text-slate-600">
-                        Add images
-                      </span>
-                    </button>
+                    {errors.category ? (
+                      <p
+                        id="product-category-error"
+                        role="alert"
+                        className="mt-1 text-xs text-rose-600"
+                      >
+                        {errors.category}
+                      </p>
+                    ) : null}
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    className="mt-3 flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-4 py-10 text-center transition-colors hover:border-slate-400 hover:bg-slate-50"
-                  >
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-900 shadow-sm">
-                      <UploadIcon className="h-5 w-5" />
-                    </span>
-                    <span className="mt-3 text-sm font-medium text-slate-700">
-                      Click to upload product images
-                    </span>
-                    <span className="mt-1 text-xs text-slate-400">
-                      Select multiple files at once
-                    </span>
-                  </button>
-                )}
 
-                {errors.images ? (
-                  <p
-                    id="product-images-error"
-                    role="alert"
-                    className="mt-2 text-xs text-rose-600"
-                  >
-                    {errors.images}
-                  </p>
-                ) : null}
+                  <div>
+                    <label
+                      htmlFor="product-price"
+                      className="block text-xs font-medium text-slate-700"
+                    >
+                      Price
+                      <span className="ml-1 text-xs font-normal text-slate-400">
+                        (optional)
+                      </span>
+                    </label>
 
-                <div className="mt-5">
-                  <p className="text-xs font-medium text-slate-700">
-                    PDF Brochure
-                    <span className="ml-1 text-xs font-normal text-slate-400">
-                      (optional)
-                    </span>
-                  </p>
-
-                  <input
-                    ref={brochureInputRef}
-                    id="product-brochure"
-                    name="brochure"
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleBrochureChange}
-                    className="sr-only"
-                    aria-label="Upload PDF brochure"
-                    aria-describedby={
-                      errors.brochure ? "product-brochure-error" : undefined
-                    }
-                  />
-
-                  {brochure || storedBrochure ? (
-                    <div className="mt-1.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm">
-                          <FileIcon className="h-5 w-5" />
+                    <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+                      <div className="relative">
+                        <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                          ₹
                         </span>
 
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-slate-800">
-                            {brochure
-                              ? brochure.name
-                              : brochureFileName(storedBrochure)}
-                          </p>
-                          <p className="text-xs text-slate-400">
-                            {brochure
-                              ? `${formatFileSize(brochure.size)} · New PDF selected`
-                              : "Current brochure PDF"}
-                          </p>
+                        <input
+                          id="product-price"
+                          name="price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          value={values.price}
+                          onChange={handleChange}
+                          aria-invalid={Boolean(errors.price)}
+                          aria-describedby={
+                            errors.price ? "product-price-error" : undefined
+                          }
+                          className={`w-full rounded-xl border bg-slate-50/70 py-3 pl-8 pr-3.5 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
+                            errors.price
+                              ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                              : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
+                          }`}
+                        />
+                      </div>
 
-                          {storedBrochure ? (
-                            <a
-                              href={resolveImageUrl(storedBrochure)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-0.5 inline-block text-xs font-medium text-slate-700 underline underline-offset-2 hover:text-slate-900"
+                      <div className="relative">
+                        <label htmlFor="product-price-unit" className="sr-only">
+                          Price unit
+                        </label>
+
+                        <select
+                          id="product-price-unit"
+                          name="priceUnit"
+                          value={values.priceUnit}
+                          onChange={handleChange}
+                          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-3.5 pr-9 text-sm text-slate-800 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
+                        >
+                          {UNIT_OPTIONS.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
+
+                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      </div>
+                    </div>
+
+                    {errors.price ? (
+                      <p
+                        id="product-price-error"
+                        role="alert"
+                        className="mt-1 text-xs text-rose-600"
+                      >
+                        {errors.price}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="product-moq"
+                      className="block text-xs font-medium text-slate-700"
+                    >
+                      Minimum Order Quantity
+                      <span className="ml-0.5 text-rose-500">*</span>
+                    </label>
+
+                    <div className="mt-1.5 grid grid-cols-[minmax(0,1fr)_112px] gap-2">
+                      <input
+                        id="product-moq"
+                        name="moq"
+                        type="number"
+                        min="1"
+                        step="1"
+                        inputMode="numeric"
+                        placeholder="e.g. 10"
+                        value={values.moq}
+                        onChange={handleChange}
+                        aria-invalid={Boolean(errors.moq)}
+                        aria-describedby={
+                          errors.moq ? "product-moq-error" : undefined
+                        }
+                        className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
+                          errors.moq
+                            ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                            : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
+                        }`}
+                      />
+
+                      <div className="relative">
+                        <label htmlFor="product-moq-unit" className="sr-only">
+                          MOQ unit
+                        </label>
+
+                        <select
+                          id="product-moq-unit"
+                          name="moqUnit"
+                          value={values.moqUnit}
+                          onChange={handleChange}
+                          className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-3.5 pr-9 text-sm text-slate-800 transition-colors focus:border-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-slate-900/10"
+                        >
+                          {UNIT_OPTIONS.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
+
+                        <ChevronDownIcon className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                      </div>
+                    </div>
+
+                    {errors.moq ? (
+                      <p
+                        id="product-moq-error"
+                        role="alert"
+                        className="mt-1 text-xs text-rose-600"
+                      >
+                        {errors.moq}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label
+                      htmlFor="product-description"
+                      className="block text-xs font-medium text-slate-700"
+                    >
+                      Product Description
+                      <span className="ml-0.5 text-rose-500">*</span>
+                    </label>
+
+                    <RichTextEditor
+                      id="product-description"
+                      value={values.description}
+                      onChange={handleDescriptionChange}
+                      placeholder="Describe the product, material, size or application."
+                      invalid={Boolean(errors.description)}
+                      describedBy={
+                        errors.description
+                          ? "product-description-error"
+                          : undefined
+                      }
+                    />
+
+                    {errors.description ? (
+                      <p
+                        id="product-description-error"
+                        role="alert"
+                        className="mt-1 text-xs text-rose-600"
+                      >
+                        {errors.description}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-900">
+                        Product Images
+                        <span className="ml-0.5 text-rose-500">*</span>
+                      </h2>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Upload one or more images. JPG, PNG or WebP up to 5 MB
+                        each.
+                      </p>
+                    </div>
+
+                    {images.length ? (
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                      >
+                        <PlusIcon className="h-3.5 w-3.5" />
+                        Add more
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <input
+                    ref={imageInputRef}
+                    id="product-images"
+                    name="images"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="sr-only"
+                    aria-label="Upload product images"
+                    aria-describedby={
+                      errors.images ? "product-images-error" : undefined
+                    }
+                  />
+
+                  {images.length ? (
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                      {images.map((image, index) => (
+                        <div
+                          key={image.id}
+                          className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                        >
+                          <div className="relative">
+                            <img
+                              src={image.url}
+                              alt={`Product image ${index + 1}`}
+                              className="h-32 w-full object-cover"
+                            />
+
+                            <button
+                              type="button"
+                              onClick={() => removeImage(image.id)}
+                              aria-label={`Remove image ${index + 1}`}
+                              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg bg-white/90 text-slate-700 shadow-sm transition-colors hover:bg-white hover:text-slate-900"
                             >
-                              View current PDF
-                            </a>
-                          ) : null}
+                              <CloseIcon className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+
+                          <p className="truncate px-2 py-1.5 text-[10px] text-slate-500">
+                            {image.file?.name || "Current image"}
+                          </p>
                         </div>
-                      </div>
+                      ))}
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => brochureInputRef.current?.click()}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                        >
-                          Replace
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={removeBrochure}
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                        >
-                          Remove PDF
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => imageInputRef.current?.click()}
+                        className="flex min-h-32 flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 p-3 text-center transition-colors hover:border-slate-400 hover:bg-slate-50"
+                      >
+                        <PlusIcon className="h-5 w-5 text-slate-900" />
+                        <span className="mt-1.5 text-xs font-medium text-slate-600">
+                          Add images
+                        </span>
+                      </button>
                     </div>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => brochureInputRef.current?.click()}
-                      className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-4 py-5 text-sm text-slate-500 transition-colors hover:border-slate-400 hover:bg-slate-50"
+                      onClick={() => imageInputRef.current?.click()}
+                      className="mt-3 flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-4 py-10 text-center transition-colors hover:border-slate-400 hover:bg-slate-50"
                     >
-                      <UploadIcon className="h-4 w-4 text-slate-900" />
-                      Upload a PDF brochure
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-900 shadow-sm">
+                        <UploadIcon className="h-5 w-5" />
+                      </span>
+                      <span className="mt-3 text-sm font-medium text-slate-700">
+                        Click to upload product images
+                      </span>
+                      <span className="mt-1 text-xs text-slate-400">
+                        Select multiple files at once
+                      </span>
                     </button>
                   )}
 
-                  {errors.brochure ? (
+                  {errors.images ? (
                     <p
-                      id="product-brochure-error"
+                      id="product-images-error"
                       role="alert"
                       className="mt-2 text-xs text-rose-600"
                     >
-                      {errors.brochure}
+                      {errors.images}
                     </p>
                   ) : null}
-                </div>
-              </div>
 
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-sm font-semibold text-slate-900">
-                      YouTube Videos
+                  <div className="mt-5">
+                    <p className="text-xs font-medium text-slate-700">
+                      PDF Brochure
                       <span className="ml-1 text-xs font-normal text-slate-400">
                         (optional)
                       </span>
-                    </h2>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Paste YouTube video URLs to show them in the product
-                      image gallery.
                     </p>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={addYoutubeVideo}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    <PlusIcon className="h-3.5 w-3.5" />
-                    Add video
-                  </button>
-                </div>
+                    <input
+                      ref={brochureInputRef}
+                      id="product-brochure"
+                      name="brochure"
+                      type="file"
+                      accept="application/pdf"
+                      onChange={handleBrochureChange}
+                      className="sr-only"
+                      aria-label="Upload PDF brochure"
+                      aria-describedby={
+                        errors.brochure ? "product-brochure-error" : undefined
+                      }
+                    />
 
-                {youtubeVideos.length ? (
-                  <div className="mt-3 space-y-3">
-                    {youtubeVideos.map((video, index) => {
-                      const videoError = errors.youtubeVideos?.[video.id];
+                    {brochure || storedBrochure ? (
+                      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-slate-900 shadow-sm">
+                            <FileIcon className="h-5 w-5" />
+                          </span>
 
-                      return (
-                        <div
-                          key={video.id}
-                          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
-                        >
-                          <div>
-                            <label
-                              htmlFor={`youtube-video-${video.id}`}
-                              className="sr-only"
-                            >
-                              YouTube video {index + 1} URL
-                            </label>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-800">
+                              {brochure
+                                ? brochure.name
+                                : brochureFileName(storedBrochure)}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {brochure
+                                ? `${formatFileSize(brochure.size)} · New PDF selected`
+                                : "Current brochure PDF"}
+                            </p>
 
-                            <input
-                              id={`youtube-video-${video.id}`}
-                              type="url"
-                              placeholder="https://www.youtube.com/watch?v=..."
-                              value={video.url}
-                              onChange={(event) =>
-                                handleYoutubeVideoChange(
-                                  video.id,
-                                  event.target.value,
-                                )
-                              }
-                              aria-invalid={Boolean(videoError)}
-                              aria-describedby={
-                                videoError
-                                  ? `youtube-video-error-${video.id}`
-                                  : undefined
-                              }
-                              className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
-                                videoError
-                                  ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                                  : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-                              }`}
-                            />
-
-                            {videoError ? (
-                              <p
-                                id={`youtube-video-error-${video.id}`}
-                                role="alert"
-                                className="mt-1 text-xs text-rose-600"
+                            {storedBrochure ? (
+                              <a
+                                href={resolveImageUrl(storedBrochure)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-0.5 inline-block text-xs font-medium text-slate-700 underline underline-offset-2 hover:text-slate-900"
                               >
-                                {videoError}
-                              </p>
+                                View current PDF
+                              </a>
                             ) : null}
                           </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => brochureInputRef.current?.click()}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                          >
+                            Replace
+                          </button>
 
                           <button
                             type="button"
-                            onClick={() => removeYoutubeVideo(video.id)}
-                            aria-label={`Remove YouTube video ${index + 1}`}
-                            className="flex h-[46px] w-[46px] items-center justify-center justify-self-start rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                            onClick={removeBrochure}
+                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
                           >
-                            <CloseIcon className="h-4 w-4" />
+                            Remove PDF
                           </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-6 text-center text-xs text-slate-400">
-                    No YouTube videos added yet.
-                  </p>
-                )}
-              </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => brochureInputRef.current?.click()}
+                        className="mt-1.5 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-4 py-5 text-sm text-slate-500 transition-colors hover:border-slate-400 hover:bg-slate-50"
+                      >
+                        <UploadIcon className="h-4 w-4 text-slate-900" />
+                        Upload a PDF brochure
+                      </button>
+                    )}
 
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                    {errors.brochure ? (
+                      <p
+                        id="product-brochure-error"
+                        role="alert"
+                        className="mt-2 text-xs text-rose-600"
+                      >
+                        {errors.brochure}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-8 border-t border-slate-100 pt-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-sm font-semibold text-slate-900">
+                        YouTube Videos
+                        <span className="ml-1 text-xs font-normal text-slate-400">
+                          (optional)
+                        </span>
+                      </h2>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        Paste YouTube video URLs to show them in the product
+                        image gallery.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={addYoutubeVideo}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    >
+                      <PlusIcon className="h-3.5 w-3.5" />
+                      Add video
+                    </button>
+                  </div>
+
+                  {youtubeVideos.length ? (
+                    <div className="mt-3 space-y-3">
+                      {youtubeVideos.map((video, index) => {
+                        const videoError = errors.youtubeVideos?.[video.id];
+
+                        return (
+                          <div
+                            key={video.id}
+                            className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
+                          >
+                            <div>
+                              <label
+                                htmlFor={`youtube-video-${video.id}`}
+                                className="sr-only"
+                              >
+                                YouTube video {index + 1} URL
+                              </label>
+
+                              <input
+                                id={`youtube-video-${video.id}`}
+                                type="url"
+                                placeholder="https://www.youtube.com/watch?v=..."
+                                value={video.url}
+                                onChange={(event) =>
+                                  handleYoutubeVideoChange(
+                                    video.id,
+                                    event.target.value,
+                                  )
+                                }
+                                aria-invalid={Boolean(videoError)}
+                                aria-describedby={
+                                  videoError
+                                    ? `youtube-video-error-${video.id}`
+                                    : undefined
+                                }
+                                className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
+                                  videoError
+                                    ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
+                                    : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
+                                }`}
+                              />
+
+                              {videoError ? (
+                                <p
+                                  id={`youtube-video-error-${video.id}`}
+                                  role="alert"
+                                  className="mt-1 text-xs text-rose-600"
+                                >
+                                  {videoError}
+                                </p>
+                              ) : null}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => removeYoutubeVideo(video.id)}
+                              aria-label={`Remove YouTube video ${index + 1}`}
+                              className="flex h-[46px] w-[46px] items-center justify-center justify-self-start rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                            >
+                              <CloseIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-6 text-center text-xs text-slate-400">
+                      No YouTube videos added yet.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-8 border-t border-slate-100 pt-6">
                   <div>
                     <h2 className="text-sm font-semibold text-slate-900">
                       Specifications
                     </h2>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Add only the specification rows that apply to this
-                      product.
+                      Search and select the specifications that apply to this
+                      product, then enter a value for each one.
                     </p>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={addSpecification}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    <PlusIcon className="h-3.5 w-3.5" />
-                    Add specification
-                  </button>
+                  <div className="mt-3">
+                    <SpecificationMultiSelect
+                      id="product-specifications"
+                      options={specificationNames}
+                      selected={specifications.map(
+                        (specification) => specification.name,
+                      )}
+                      onToggle={toggleSpecification}
+                      onCreate={createSpecification}
+                      loading={specificationsLoading}
+                      error={specificationsError}
+                      disabled={submitting || loadingProduct}
+                    />
+                  </div>
+
+                  {specifications.length ? (
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleSpecificationDragEnd}
+                    >
+                      <SortableContext
+                        items={specificationIds}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        <div className="mt-3 space-y-3">
+                          {specifications.map((specification, index) => (
+                            <SortableSpecificationRow
+                              key={specification.id}
+                              specification={specification}
+                              index={index}
+                              rowErrors={
+                                errors.specifications?.[specification.id]
+                              }
+                              disabled={submitting || loadingProduct}
+                              onValueChange={handleSpecificationChange}
+                              onRemove={removeSpecification}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  ) : (
+                    <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-6 text-center text-xs text-slate-400">
+                      No specifications selected yet.
+                    </p>
+                  )}
                 </div>
 
-                {specifications.length ? (
-                  <div className="mt-3 space-y-3">
-                    {specifications.map((specification, index) => {
-                      const rowErrors =
-                        errors.specifications?.[specification.id];
-
-                      return (
-                        <div
-                          key={specification.id}
-                          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
-                        >
-                          <div>
-                            <label
-                              htmlFor={`specification-name-${specification.id}`}
-                              className="sr-only"
-                            >
-                              Specification {index + 1} name
-                            </label>
-
-                            <input
-                              id={`specification-name-${specification.id}`}
-                              type="text"
-                              placeholder="Specification name"
-                              value={specification.name}
-                              onChange={(event) =>
-                                handleSpecificationChange(
-                                  specification.id,
-                                  "name",
-                                  event.target.value,
-                                )
-                              }
-                              aria-invalid={Boolean(rowErrors?.name)}
-                              aria-describedby={
-                                rowErrors?.name
-                                  ? `specification-name-error-${specification.id}`
-                                  : undefined
-                              }
-                              className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
-                                rowErrors?.name
-                                  ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                                  : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-                              }`}
-                            />
-
-                            {rowErrors?.name ? (
-                              <p
-                                id={`specification-name-error-${specification.id}`}
-                                role="alert"
-                                className="mt-1 text-xs text-rose-600"
-                              >
-                                {rowErrors.name}
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <div>
-                            <label
-                              htmlFor={`specification-value-${specification.id}`}
-                              className="sr-only"
-                            >
-                              Specification {index + 1} value
-                            </label>
-
-                            <input
-                              id={`specification-value-${specification.id}`}
-                              type="text"
-                              placeholder="Specification value"
-                              value={specification.value}
-                              onChange={(event) =>
-                                handleSpecificationChange(
-                                  specification.id,
-                                  "value",
-                                  event.target.value,
-                                )
-                              }
-                              aria-invalid={Boolean(rowErrors?.value)}
-                              aria-describedby={
-                                rowErrors?.value
-                                  ? `specification-value-error-${specification.id}`
-                                  : undefined
-                              }
-                              className={`w-full rounded-xl border bg-slate-50/70 px-3.5 py-3 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:bg-white focus:outline-none focus:ring-4 ${
-                                rowErrors?.value
-                                  ? "border-rose-300 focus:border-rose-400 focus:ring-rose-100"
-                                  : "border-slate-200 focus:border-slate-900 focus:ring-slate-900/10"
-                              }`}
-                            />
-
-                            {rowErrors?.value ? (
-                              <p
-                                id={`specification-value-error-${specification.id}`}
-                                role="alert"
-                                className="mt-1 text-xs text-rose-600"
-                              >
-                                {rowErrors.value}
-                              </p>
-                            ) : null}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeSpecification(specification.id)
-                            }
-                            aria-label={`Remove specification ${index + 1}`}
-                            className="flex h-[46px] w-[46px] items-center justify-center justify-self-start rounded-xl border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                          >
-                            <CloseIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="mt-3 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-4 py-6 text-center text-xs text-slate-400">
-                    No specifications added yet.
+                {submitting ? (
+                  <p
+                    role="status"
+                    className="mt-6 flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-xs leading-5 text-slate-600"
+                  >
+                    <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-900" />
+                    Saving product...
                   </p>
-                )}
-              </div>
+                ) : null}
 
-              {submitting ? (
-                <p
-                  role="status"
-                  className="mt-6 flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-xs leading-5 text-slate-600"
-                >
-                  <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-900" />
-                  Saving product...
-                </p>
-              ) : null}
+                {submitError ? (
+                  <p
+                    role="alert"
+                    className="mt-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs leading-5 text-rose-700"
+                  >
+                    <CloseIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    {submitError}
+                  </p>
+                ) : null}
 
-              {submitError ? (
-                <p
-                  role="alert"
-                  className="mt-6 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs leading-5 text-rose-700"
-                >
-                  <CloseIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  {submitError}
-                </p>
-              ) : null}
+                {status ? (
+                  <p
+                    role="status"
+                    className="mt-6 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-xs leading-5 text-emerald-700"
+                  >
+                    <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                    {status}
+                  </p>
+                ) : null}
 
-              {status ? (
-                <p
-                  role="status"
-                  className="mt-6 flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-xs leading-5 text-emerald-700"
-                >
-                  <CheckIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
-                  {status}
-                </p>
-              ) : null}
+                <div className="mt-7 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={submitting}
+                    className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
 
-              <div className="mt-7 flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={submitting}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={
-                    submitting ||
-                    categoriesLoading ||
-                    Boolean(categoriesError)
-                  }
-                  className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-                >
-                  {submitting
-                    ? "Saving..."
-                    : isEditing
-                      ? "Update Product"
-                      : "Save Product"}
-                </button>
-              </div>
-            </form>
+                  <button
+                    type="submit"
+                    disabled={
+                      submitting ||
+                      categoriesLoading ||
+                      Boolean(categoriesError)
+                    }
+                    className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  >
+                    {submitting
+                      ? "Saving..."
+                      : isEditing
+                        ? "Update Product"
+                        : "Save Product"}
+                  </button>
+                </div>
+              </form>
             )}
           </main>
         </div>
